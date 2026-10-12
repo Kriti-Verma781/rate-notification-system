@@ -1,0 +1,508 @@
+<div th:fragment="content">
+
+<style>
+.mail-app{height:calc(100vh - 215px);min-height:540px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.mail-app *{box-sizing:border-box}
+
+/* ===== top bar of the card ===== */
+.mail-bar{display:flex;align-items:center;gap:18px;padding:14px 20px;border-bottom:1px solid var(--line);background:#fff}
+.mb-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;white-space:nowrap}
+.mb-title .ti{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:19px}
+.mb-count{font-size:12px;font-weight:800;background:var(--accent);color:#fff;border-radius:20px;padding:3px 10px;display:none}
+.mb-search{flex:1;max-width:540px;position:relative}
+.mb-search > .ti{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:17px;pointer-events:none}
+.mb-search input{width:100%;padding:11px 38px 11px 40px;border-radius:12px;border:1px solid #d9dfeb;background:#f6f8fc;font-size:14px;transition:.15s}
+.mb-search input:hover{border-color:#b3bed6}
+.mb-search input:focus{background:#fff}
+.mb-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:none;border-radius:8px;background:transparent;color:#94a3b8;cursor:pointer;display:none;font-size:16px}
+.mb-clear:hover{background:#e8ecf4;color:#475569}
+.mb-right{margin-left:auto}
+.mb-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:11px;border:1px solid #d5dbe7;background:#fff;color:var(--navy2);font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+.mb-btn:hover{background:var(--navy2);border-color:var(--navy2);color:#fff}
+.mb-btn .ti{font-size:17px}
+.mb-btn.spin .ti{animation:mspin .8s linear infinite}
+@keyframes mspin{to{transform:rotate(360deg)}}
+
+/* ===== body ===== */
+.mail-main{flex:1;display:flex;min-height:0}
+.mail-panel{width:390px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--line);background:#fff}
+.ml-tabs{display:flex;gap:6px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.ml-tab{padding:7px 14px;border-radius:20px;border:1px solid transparent;background:transparent;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+.ml-tab:hover{background:#f1f4fa}
+.ml-tab.on{background:var(--accent-soft);color:var(--accent)}
+.ml-tabs .ml-total{margin-left:auto;align-self:center;font-size:12px;color:var(--muted);font-weight:600}
+#mailList{flex:1;overflow-y:auto}
+#mailList::-webkit-scrollbar,.mail-view::-webkit-scrollbar{width:6px}
+#mailList::-webkit-scrollbar-thumb,.mail-view::-webkit-scrollbar-thumb{background:#cbd2e0;border-radius:6px}
+.ml-item{position:relative;display:flex;gap:12px;padding:14px 16px 14px 18px;border-bottom:1px solid #f0f2f7;cursor:pointer;transition:background .12s}
+.ml-item:hover{background:#f7f8fd}
+.ml-item.active{background:var(--accent-soft)}
+.ml-item.active::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+.ml-av{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:15px;font-weight:800;flex-shrink:0;color:#fff}
+.ml-main{min-width:0;flex:1}
+.ml-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ml-from{font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ml-date{font-size:11.5px;color:#94a3b8;white-space:nowrap;flex-shrink:0}
+.ml-subj{margin-top:3px;font-size:13.5px;line-height:1.4;color:#334155;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ml-meta{margin-top:5px;font-size:12px;color:#94a3b8;display:flex;gap:10px}
+.ml-item.unread .ml-from,.ml-item.unread .ml-subj{font-weight:800;color:var(--ink)}
+.ml-item.unread .ml-date{color:var(--accent);font-weight:700}
+.ml-item.unread::after{content:"";position:absolute;right:14px;bottom:16px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.ml-item.read .ml-from{font-weight:600}
+.ml-empty{padding:54px 24px;text-align:center;color:var(--muted)}
+.ml-empty .ti{font-size:40px;color:#b6bfd6}
+.ml-empty b{display:block;margin-top:10px;font-size:15px;color:#334155}
+.ml-empty span{font-size:13px}
+
+/* ===== reading pane ===== */
+.mail-view{flex:1;min-width:0;overflow:auto;background:#fbfcfe}
+.mv-empty{height:100%;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.mv-empty .ico{width:84px;height:84px;border-radius:24px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:40px}
+.mv-empty h3{margin-top:18px;font-size:18px;font-weight:800}
+.mv-empty p{margin-top:6px;font-size:13.5px;color:var(--muted);max-width:300px;line-height:1.5}
+#mailActions{display:none;position:sticky;top:0;z-index:5;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 24px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+#mailActions .sp{flex:1}
+.eb{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;border:1px solid #d5dbe7;background:#fff;color:#1e293b;font-size:13.5px;font-weight:700;cursor:pointer;transition:.15s}
+.eb:hover{background:#f1f4fa;transform:translateY(-1px)}
+.eb .ti{font-size:17px}
+.eb.primary{background:var(--navy2);border-color:var(--navy2);color:#fff}
+.eb.primary:hover{background:var(--accent);border-color:var(--accent)}
+.eb.ok{background:#16a34a;border-color:#16a34a;color:#fff}
+.eb.ok:hover{background:#15803d}
+.eb.bad{background:#fff;border-color:#fca5a5;color:#dc2626}
+.eb.bad:hover{background:#dc2626;border-color:#dc2626;color:#fff}
+.mv-wrap{padding:24px 28px 32px;max-width:960px}
+.mv-subject{font-size:22px;line-height:1.3;font-weight:800}
+.mv-sender{display:flex;align-items:center;gap:14px;margin-top:18px}
+.mv-av{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
+.mv-who{min-width:0}
+.mv-who b{display:block;font-size:15px;word-break:break-word}
+.mv-who span{font-size:12.5px;color:var(--muted)}
+.mv-date{margin-left:auto;font-size:12.5px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.mv-meta{margin-top:16px;display:grid;grid-template-columns:54px 1fr;gap:8px 12px;font-size:13.5px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.mv-meta dt{color:var(--muted);font-weight:700}
+.mv-meta dd{margin:0;word-break:break-word}
+.mv-body{margin-top:18px;padding:22px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:14.5px;line-height:1.7;overflow-x:auto}
+.mv-att{margin-top:18px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.mv-att h4{font-size:13.5px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.mv-att ul{list-style:none;display:flex;flex-wrap:wrap;gap:10px;padding:0}
+.mv-att a{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:#f6f8fc;border:1px solid #dfe5f0;color:var(--accent);font-size:13px;font-weight:700;text-decoration:none;transition:.15s}
+.mv-att a:hover{background:var(--accent-soft);border-color:#c3c8ff;transform:translateY(-1px)}
+
+/* ===== reject modal + toast ===== */
+.em-modal{display:none;position:fixed;inset:0;z-index:10050;background:rgba(10,15,36,.55);backdrop-filter:blur(4px);justify-content:center;align-items:center;padding:16px}
+.em-box{width:100%;max-width:480px;background:#fff;border-radius:18px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:fadeUp .25s ease}
+.em-box h3{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800}
+.em-box h3 .ti{width:36px;height:36px;border-radius:10px;background:#fef2f2;color:#dc2626;display:grid;place-items:center;font-size:19px}
+.em-box p{margin:8px 0 14px;color:var(--muted);font-size:13.5px}
+.em-box textarea{width:100%;height:110px;padding:12px;border:1px solid #d1d7e3;border-radius:11px;background:#f8fafc;font:inherit;font-size:14px;resize:vertical}
+.em-box textarea:focus{background:#fff}
+.em-actions{margin-top:18px;display:flex;justify-content:flex-end;gap:10px}
+#toast{position:fixed;right:24px;bottom:24px;z-index:11000;max-width:360px;padding:13px 18px;border-radius:12px;background:#0f172a;color:#fff;font:600 13.5px 'Plus Jakarta Sans','Segoe UI',sans-serif;box-shadow:0 14px 34px rgba(0,0,0,.3);opacity:0;transform:translateY(10px);pointer-events:none;transition:.25s}
+#toast.show{opacity:1;transform:none}
+#toast.ok{border-left:4px solid #22c55e}
+#toast.err{border-left:4px solid #ef4444}
+
+@media(max-width:1000px){
+  .mail-app{height:auto}
+  .mail-bar{flex-wrap:wrap}
+  .mb-search{order:3;flex-basis:100%;max-width:none}
+  .mail-main{flex-direction:column}
+  .mail-panel{width:100%;max-height:340px;border-right:0;border-bottom:1px solid var(--line)}
+  .mv-wrap{padding:18px}
+}
+</style>
+
+<div class="mail-app">
+
+  <!-- TOP BAR: Inbox | search | Refresh -->
+  <div class="mail-bar">
+    <div class="mb-title"><i class="ti ti-inbox"></i> Inbox <span class="mb-count" id="inboxCount">0</span></div>
+
+    <div class="mb-search">
+      <i class="ti ti-search"></i>
+      <input id="mailSearch" type="text" placeholder="Search mail by subject or sender..." oninput="onSearch()" autocomplete="off">
+      <button type="button" class="mb-clear" id="mailClear" onclick="clearSearch()" title="Clear"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="mb-right">
+      <button class="mb-btn" id="refreshBtn" onclick="loadInbox()"><i class="ti ti-refresh"></i> Refresh</button>
+    </div>
+  </div>
+
+  <div class="mail-main">
+
+    <!-- LIST -->
+    <div class="mail-panel">
+      <div class="ml-tabs">
+        <button class="ml-tab on" id="tabAll" onclick="setTab('all')">All</button>
+        <button class="ml-tab" id="tabUnread" onclick="setTab('unread')">Unread</button>
+        <span class="ml-total" id="mlTotal"></span>
+      </div>
+      <div id="mailList"></div>
+    </div>
+
+    <!-- READING PANE -->
+    <div class="mail-view">
+
+      <!-- MAIL ACTION BAR -->
+      <div id="mailActions">
+        <button class="eb primary" onclick="forwardMail()"><i class="ti ti-send"></i> Forward NOC</button>
+        <span class="sp"></span>
+        <button class="eb ok" onclick="approveMail()"><i class="ti ti-check"></i> Approve</button>
+        <button class="eb bad" onclick="rejectMail()"><i class="ti ti-x"></i> Reject</button>
+      </div>
+
+      <!-- MAIL CONTENT -->
+      <div id="mailView">
+        <div class="mv-empty">
+          <div class="ico"><i class="ti ti-mail-opened"></i></div>
+          <h3>Select a mail to read</h3>
+          <p>Pick any message from the list on the left. Its details and actions will show up here.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ❌ REJECT MODAL -->
+<div class="em-modal" id="rejectModal">
+  <div class="em-box">
+    <h3><i class="ti ti-circle-x"></i> Reject mail</h3>
+    <p>Add a short reason. It is sent along with the rejection.</p>
+    <textarea id="rejectReason" placeholder="Enter rejection reason..."></textarea>
+    <div class="em-actions">
+      <button class="eb" onclick="closeRejectModal()">Cancel</button>
+      <button class="eb ok" style="background:#dc2626;border-color:#dc2626" onclick="confirmReject()">Reject</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+	let inbox=[];
+	let selectedMail=null;
+	let autoRefreshTimer=null;
+	let currentTab="all";
+	const readIds=new Set();      // locally opened mails stay "read" after refresh
+	const COLORS=["#4f46e5","#0ea5e9","#16a34a","#d97706","#db2777","#7c3aed","#0f766e","#dc2626"];
+
+	/* 🔥 AUTO REFRESH EVERY 10 SECONDS */
+	document.addEventListener("DOMContentLoaded", () => {
+	    loadInbox();
+
+	    autoRefreshTimer = setInterval(() => {
+	        loadInbox(true);   // silent refresh
+	    }, 10000); // 10 seconds
+	});
+
+/* ---------- helpers ---------- */
+function esc(s){
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function senderName(from){
+  if(!from) return "Unknown";
+  const i = from.indexOf("<");
+  const n = (i > 0 ? from.slice(0,i) : from).replace(/["']/g,"").trim();
+  return n || from;
+}
+function colorFor(s){
+  let h = 0; s = s || "";
+  for(let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return COLORS[h % COLORS.length];
+}
+function shortDate(d){
+  const dt = new Date(d);
+  if(isNaN(dt)) return "";
+  const now = new Date();
+  if(dt.toDateString() === now.toDateString())
+    return dt.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+  return dt.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+}
+let toastTimer=null;
+function toast(msg,type){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.className="show "+(type||"ok");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.className="";},3200);
+}
+function updateUnread(){
+  const unread = inbox.filter(m=>!m.read).length;
+  const badge = document.getElementById("inboxCount");
+  badge.textContent = unread;
+  badge.style.display = unread ? "inline-block" : "none";
+  document.getElementById("tabUnread").textContent = "Unread" + (unread ? " (" + unread + ")" : "");
+}
+
+/* ---------- search + tabs ---------- */
+function onSearch(){
+  document.getElementById("mailClear").style.display =
+    document.getElementById("mailSearch").value ? "block" : "none";
+  renderInbox(true);
+}
+function clearSearch(){
+  document.getElementById("mailSearch").value = "";
+  onSearch();
+}
+function setTab(t){
+  currentTab = t;
+  document.getElementById("tabAll").classList.toggle("on", t === "all");
+  document.getElementById("tabUnread").classList.toggle("on", t === "unread");
+  renderInbox(true);
+}
+
+/* ---------- load + render ---------- */
+function loadInbox(silent=false){
+ const btn=document.getElementById("refreshBtn");
+ if(!silent) btn.classList.add("spin");
+ fetch("http://45.195.90.145:8089/mail/inbox")
+ .then(r=>r.json())
+ .then(d=>{
+   inbox = d || [];
+   inbox.forEach(m => { if(readIds.has(m.id)) m.read = true; });
+   renderInbox(silent);
+ })
+ .catch(e=>console.error(e))
+ .finally(()=>btn.classList.remove("spin"));
+}
+
+function renderInbox(silent=false){
+ const list=document.getElementById("mailList");
+ const keepScroll = list.scrollTop;
+ list.innerHTML="";
+ updateUnread();
+
+ const q = document.getElementById("mailSearch").value.trim().toLowerCase();
+ const rows = inbox.filter(m => {
+   if(currentTab === "unread" && m.read) return false;
+   if(!q) return true;
+   return ((m.subject||"") + " " + (m.from||"")).toLowerCase().includes(q);
+ });
+
+ document.getElementById("mlTotal").textContent =
+   rows.length + (rows.length === 1 ? " mail" : " mails");
+
+ if(rows.length === 0){
+   list.innerHTML = q
+     ? '<div class="ml-empty"><i class="ti ti-search-off"></i><b>No mails match your search</b><span>Try a different word or clear the search.</span></div>'
+     : '<div class="ml-empty"><i class="ti ti-inbox-off"></i><b>Nothing here</b><span>' + (currentTab === "unread" ? "You are all caught up." : "Your inbox is empty.") + '</span></div>';
+   return;
+ }
+
+ rows.forEach(m=>{
+   const name = senderName(m.from);
+   const div=document.createElement("div");
+
+   div.className =
+     "ml-item " +
+     (m.read ? "read" : "unread") +
+     (selectedMail && selectedMail.id === m.id ? " active" : "");
+
+   div.innerHTML = `
+     <div class="ml-av" style="background:${colorFor(name)}">${esc(name.charAt(0).toUpperCase())}</div>
+     <div class="ml-main">
+       <div class="ml-top">
+         <span class="ml-from">${esc(name)}</span>
+         <span class="ml-date">${esc(shortDate(m.sentDate))}</span>
+       </div>
+       <div class="ml-subj">${esc(m.subject)}</div>
+       ${(m.attachments && m.attachments.length) ? '<div class="ml-meta"><span><i class="ti ti-paperclip"></i> ' + m.attachments.length + ' attachment' + (m.attachments.length > 1 ? 's' : '') + '</span></div>' : ''}
+     </div>
+   `;
+
+   div.onclick = () => openMail(m,div);
+   list.appendChild(div);
+ });
+
+ list.scrollTop = keepScroll;
+}
+
+function openMail(m,el){
+ selectedMail=m;
+
+ // 🔥 mark as read
+ m.read = true;
+ readIds.add(m.id);
+ el.classList.remove("unread");
+ el.classList.add("read");
+
+ document.querySelectorAll(".ml-item")
+   .forEach(i=>i.classList.remove("active"));
+ el.classList.add("active");
+ updateUnread();
+
+ document.getElementById("mailActions").style.display="flex";
+
+ // 🔥 ATTACHMENTS HTML
+  let attachmentsHtml = "";
+  if (m.attachments && m.attachments.length > 0) {
+    attachmentsHtml = `
+      <div class="mv-att">
+        <h4><i class="ti ti-paperclip"></i> Attachments (${m.attachments.length})</h4>
+        <ul>
+          ${m.attachments.map(a => `
+            <li>
+              <a href="http://45.195.90.145:8089/mail/attachment/${a}" target="_blank">
+                <i class="ti ti-file"></i> ${esc(a)}
+              </a>
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+ const name = senderName(m.from);
+
+ document.getElementById("mailView").innerHTML = `
+  <div class="mv-wrap">
+    <h2 class="mv-subject">${esc(m.subject)}</h2>
+
+    <div class="mv-sender">
+      <div class="mv-av" style="background:${colorFor(name)}">${esc(name.charAt(0).toUpperCase())}</div>
+      <div class="mv-who"><b>${esc(name)}</b><span>${esc(m.from)}</span></div>
+      <div class="mv-date"><i class="ti ti-clock"></i> ${esc(new Date(m.sentDate).toLocaleString())}</div>
+    </div>
+
+    <dl class="mv-meta">
+      <dt>To</dt><dd>${m.to ? esc(m.to.join(", ")) : "-"}</dd>
+      <dt>CC</dt><dd>${m.cc && m.cc.length ? esc(m.cc.join(", ")) : "-"}</dd>
+    </dl>
+
+    <div class="mv-body">
+      ${m.body}
+    </div>
+
+    ${attachmentsHtml}
+  </div>
+ `;
+}
+
+
+function forwardMail(){
+  if(!selectedMail){
+    toast("Please select a mail first","err");
+    return;
+  }
+
+  const payload = {
+    inboxUid: selectedMail.uid
+  };
+
+  fetch("http://45.195.90.145:8089/mail/forwardNoc", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Forward failed");
+    return res.json();
+  })
+  .then(data => {
+    toast("Mail forwarded to NOC","ok");
+    console.log("Forward response:", data);
+
+    selectedMail.forwarded = true;
+  })
+  .catch(err => {
+    toast("Could not forward the mail. Try again.","err");
+    console.error(err);
+  });
+}
+
+
+function approveMail(){
+  if(!selectedMail){
+    toast("Please select a mail first","err");
+    return;
+  }
+
+  const payload = {
+    inboxUid: selectedMail.uid
+  };
+
+  fetch("http://45.195.90.145:8089/mail/approve", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Approve failed");
+    return res.json();
+  })
+  .then(data => {
+    toast("Mail approved","ok");
+    console.log("Approve response:", data);
+
+    selectedMail.approved = true;
+  })
+  .catch(err => {
+    toast("Could not approve the mail. Try again.","err");
+    console.error(err);
+  });
+}
+
+function rejectMail(){
+  if(!selectedMail){
+    toast("Please select a mail first","err");
+    return;
+  }
+
+  document.getElementById("rejectReason").value = "";
+  document.getElementById("rejectModal").style.display = "flex";
+}
+
+function closeRejectModal(){
+  document.getElementById("rejectModal").style.display = "none";
+}
+
+function confirmReject(){
+  const reason = document.getElementById("rejectReason").value.trim();
+
+  if(!reason){
+    toast("Please enter a rejection reason","err");
+    return;
+  }
+
+  const payload = {
+    inboxUid: selectedMail.uid,
+    msg: reason
+  };
+
+  fetch("http://45.195.90.145:8089/mail/reject", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Reject failed");
+    return res.json();
+  })
+  .then(data => {
+    toast("Mail rejected","ok");
+    console.log("Reject response:", data);
+
+    closeRejectModal();
+
+    selectedMail.rejected = true;
+  })
+  .catch(err => {
+    toast("Could not reject the mail. Try again.","err");
+    console.error(err);
+  });
+}
+
+</script>
+
+</div>

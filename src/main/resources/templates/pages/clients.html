@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+
+<div th:fragment="content">
+
+    <div class="pg-head">
+        <div>
+            <h1>Clients</h1>
+            <p>Manage onboarded clients, their account managers and the trunks assigned to each one.</p>
+        </div>
+        <a class="add-btn" th:href="@{'/?page=client-add'}"><i class="ti ti-plus"></i> Add client</a>
+    </div>
+
+    <div class="stats">
+        <div class="stat"><div class="stat-ic i1"><i class="ti ti-users"></i></div><div><b id="stClients">0</b><span>Total clients</span></div></div>
+        <div class="stat"><div class="stat-ic i2"><i class="ti ti-plug-connected"></i></div><div><b id="stTrunks">0</b><span>Trunks assigned</span></div></div>
+        <div class="stat"><div class="stat-ic i3"><i class="ti ti-user-check"></i></div><div><b id="stAms">0</b><span>Account managers</span></div></div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-head">
+            <div>
+                <div class="panel-title">All clients</div>
+                <div class="panel-sub">Search by client name to find a record quickly.</div>
+            </div>
+            <div class="search-box" style="margin:0;width:300px">
+                <input id="searchBox" onkeyup="applyFilters()" type="text" placeholder="Search client name...">
+            </div>
+        </div>
+
+        <table id="clientTable">
+            <thead>
+            <tr>
+                <th>Client</th>
+                <th>Account manager</th>
+                <th>Trunks</th>
+                <th style="width:150px">Action</th>
+            </tr>
+            </thead>
+
+            <tbody id="tableBody">
+            <tr th:each="c : ${clients}">
+                <td>
+                    <div class="cell-user">
+                        <span class="avatar"
+                              th:text="${#strings.isEmpty(c.name) ? '?' : #strings.toUpperCase(#strings.substring(c.name,0,1))}">C</span>
+                        <span class="client-name" th:text="${c.name}"></span>
+                    </div>
+                </td>
+                <td><span class="manager-name" th:text="${c.amName}"></span></td>
+
+                <td class="trunk-name">
+                    <span class="chip" th:each="t : ${c.trunks}" th:text="${t.name}"></span>
+                </td>
+
+                <td>
+                    <a class="row-link" th:href="@{'/?page=client-details&id=' + ${c.id}}">View details <i class="ti ti-arrow-right"></i></a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div id="emptyState" class="empty-state" style="display:none">
+            <i class="ti ti-users-off"></i>
+            <h3>No clients found</h3>
+            <p>Try a different search, or onboard your first client to get started.</p>
+            <a class="add-btn" th:href="@{'/?page=client-add'}"><i class="ti ti-plus"></i> Add client</a>
+        </div>
+
+        <div class="pagination">
+            <button id="prevBtn" onclick="prevPage()"><i class="ti ti-chevron-left"></i> Prev</button>
+            <span id="pageInfo"></span>
+            <button id="nextBtn" onclick="nextPage()">Next <i class="ti ti-chevron-right"></i></button>
+        </div>
+    </div>
+
+<script>
+	let allRows = [];
+	let rowData = [];
+	let filteredIndexes = [];
+	let currentPage = 1;
+	const rowsPerPage = 10;
+
+	document.addEventListener("DOMContentLoaded", () => {
+
+	  allRows = Array.from(document.querySelectorAll("#tableBody tr"));
+
+	  rowData = allRows.map((row, index) => ({
+	    index,
+	    name: row.querySelector(".client-name").textContent.toLowerCase()
+	  }));
+
+	  filteredIndexes = rowData.map(r => r.index);
+
+	  /* summary cards */
+	  let trunkCount = 0;
+	  const ams = new Set();
+	  allRows.forEach(row => {
+	    const chips = row.querySelectorAll(".trunk-name .chip");
+	    trunkCount += chips.length;
+	    if (chips.length > 3) {
+	      for (let i = 3; i < chips.length; i++) chips[i].style.display = "none";
+	      const more = document.createElement("span");
+	      more.className = "chip more";
+	      more.textContent = "+" + (chips.length - 3);
+	      row.querySelector(".trunk-name").appendChild(more);
+	    }
+	    const am = row.querySelector(".manager-name").textContent.trim();
+	    if (am) ams.add(am);
+	  });
+	  document.getElementById("stClients").textContent = allRows.length;
+	  document.getElementById("stTrunks").textContent = trunkCount;
+	  document.getElementById("stAms").textContent = ams.size;
+
+	  showPage(1);
+	});
+
+	function showPage(page) {
+	  currentPage = page;
+
+	  allRows.forEach(row => row.style.display = "none");
+
+	  const start = (page - 1) * rowsPerPage;
+	  const end = start + rowsPerPage;
+
+	  filteredIndexes.slice(start, end).forEach(i => {
+	    allRows[i].style.display = "";
+	  });
+
+	  document.getElementById("prevBtn").disabled = page === 1;
+	  document.getElementById("nextBtn").disabled = end >= filteredIndexes.length;
+
+	  const totalPages = Math.max(1, Math.ceil(filteredIndexes.length / rowsPerPage));
+	  document.getElementById("pageInfo").textContent =
+	    "Page " + page + " of " + totalPages + " · " + filteredIndexes.length + " clients";
+
+	  document.getElementById("emptyState").style.display =
+	    filteredIndexes.length === 0 ? "block" : "none";
+	  document.getElementById("clientTable").style.display =
+	    filteredIndexes.length === 0 ? "none" : "table";
+	}
+
+	function nextPage() {
+	  showPage(currentPage + 1);
+	}
+
+	function prevPage() {
+	  showPage(currentPage - 1);
+	}
+
+	let searchTimer = null;
+
+	function applyFilters() {
+	  clearTimeout(searchTimer);
+
+	  searchTimer = setTimeout(() => {
+	    const search = document.getElementById("searchBox").value.toLowerCase();
+
+	    filteredIndexes = rowData
+	      .filter(r => r.name.includes(search))
+	      .map(r => r.index);
+
+	    showPage(1);
+	  }, 300);
+	}
+</script>
+
+</div>
+</body>
+</html>

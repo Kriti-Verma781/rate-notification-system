@@ -1,0 +1,1302 @@
+<div th:fragment="content">
+
+	<div class="header-bar">
+	    <h1>Client details</h1>
+
+	    <div class="header-actions">
+	        <a class="btn btn-back" th:href="@{'/?page=clients'}">← Back</a>
+	        <button class="btn btn-primary" onclick="openTrunkModal()">+ Add trunk</button>
+	        <button class="btn btn-warning" onclick="enableEditMode()">✏️ Edit client</button>
+	    </div>
+	</div>
+
+	<!-- EDIT ACTIONS -->
+	<div id="editActions" class="header-actions" style="display:none; margin-bottom:15px;">
+	    <button class="btn btn-save" onclick="updateClient()">Save changes</button>
+	    <button class="btn btn-back" onclick="cancelEdit()">Cancel</button>
+	</div>
+
+    <div class="details-card">
+
+        <table class="details-table">
+            <tbody>
+
+				<tr>
+				    <th>Client name</th>
+				    <td>
+				        <span class="view-mode" th:text="${client.name}"></span>
+				        <input class="edit-mode" type="text" id="clientNameInput"
+				               th:value="${client.name}" style="display:none;">
+				    </td>
+				</tr>
+
+				<tr>
+				    <th>Primary emails</th>
+				    <td>
+				        <span class="view-mode"
+				              th:text="${#strings.arrayJoin(client.primaryEmail, ', ')}"></span>
+				        <input class="edit-mode" type="text" id="primaryEmails"
+				               th:value="${#strings.arrayJoin(client.primaryEmail, ', ')}"
+				               placeholder="comma separated"
+				               style="display:none;">
+				    </td>
+				</tr>
+
+				<tr>
+				    <th>CC emails</th>
+				    <td>
+				        <span class="view-mode"
+				              th:text="${#strings.arrayJoin(client.ccEmails, ', ')}"></span>
+				        <input class="edit-mode" type="text" id="ccEmails"
+				               th:value="${#strings.arrayJoin(client.ccEmails, ', ')}"
+				               placeholder="comma separated"
+				               style="display:none;">
+				    </td>
+				</tr>
+
+				<tr>
+				    <th>Account manager name</th>
+				    <td>
+				        <span class="view-mode" th:text="${client.amName}"></span>
+				        <input class="edit-mode" type="text" id="amName"
+				               th:value="${client.amName}" style="display:none;">
+				    </td>
+				</tr>
+
+				<tr>
+				    <th>Account manager email</th>
+				    <td>
+				        <span class="view-mode" th:text="${client.accountManagerEmail}"></span>
+				        <input class="edit-mode" type="email" id="amEmail"
+				               th:value="${client.accountManagerEmail}" style="display:none;">
+				    </td>
+				</tr>
+
+	            <!-- TRUNKS -->
+	            <tr>
+	                <th style="vertical-align:top;">Trunks</th>
+	                <td>
+
+	                    <table class="trunk-table">
+	                        <thead>
+	                            <tr>
+	                                <th>Trunk name</th>
+	                                <th>Code</th>
+	                                <th style="width:120px;">Actions</th>
+	                            </tr>
+	                        </thead>
+
+	                        <tbody>
+	                        <tr th:each="t : ${client.trunks}">
+	                            <td th:text="${t.name}"></td>
+	                            <td th:text="${t.code}"></td>
+	                            <td>
+	                                <div class="actions">
+
+	                                    <!-- DOWNLOAD -->
+	                                    <span th:if="${client.rateSheets != null}">
+	                                        <a th:each="rs : ${client.rateSheets}"
+	                                           th:if="${rs.trunkName == t.name}"
+	                                           th:href="@{'http://45.195.90.145:8089/rateSheet/download/' + ${rs.id}}"
+	                                           target="_blank"
+	                                           title="Download Rate Sheet">
+	                                            ⬇️
+	                                        </a>
+	                                    </span>
+
+	                                    <a href="javascript:void(0)"
+	                                       title="View Attachment"
+	                                       class="view-attachment"
+	                                       th:data-client="${client.name}"
+	                                       th:data-trunk="${t.name}">📎</a>
+
+	                                </div>
+	                            </td>
+	                        </tr>
+	                        </tbody>
+	                    </table>
+
+	                </td>
+	            </tr>
+
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- RATE SHEET MODAL -->
+    <div id="rateModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box wide">
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <h3>Rate sheet preview</h3>
+
+                <div class="rate-actions">
+                    <button class="rate-btn refresh" title="Refresh Rates" onclick="refreshRateSheet()">🔄 Refresh</button>
+
+                    <button class="rate-btn send" id="sendRateBtn" onclick="sendRate()">
+                        <span class="btn-text">📤 Send Rate</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+
+                    <button class="rate-btn update" onclick="openUpdateModal()">✏️ Update</button>
+                    <button class="rate-btn delete" onclick="openDeleteModal()">🗑 Delete</button>
+                </div>
+            </div>
+
+            <div class="search-box" style="margin:14px 0 10px;">
+                <input type="text" id="rateSearch" placeholder="Search country / code..." onkeyup="searchRateSheet()">
+            </div>
+
+            <div style="flex:1; overflow:auto; border:1px solid var(--line); border-radius:12px;">
+                <table class="rate-table">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Country name</th>
+                        <th>Rate</th>
+                        <th>Status</th>
+                        <th>Effective date</th>
+                        <th>Billing increment</th>
+                    </tr>
+                    </thead>
+                    <tbody id="rateTableBody"></tbody>
+                </table>
+            </div>
+
+            <div style="text-align:right; margin-top:14px">
+                <button class="close-btn" onclick="closeRateModal()">✖ Close</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ADD TRUNK MODAL -->
+    <div id="trunkModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+
+            <div class="modal-title">Add trunks</div>
+
+            <input type="hidden" id="clientName" th:value="${client.name}">
+
+            <div id="trunkCheckboxContainer" class="checkbox-box">
+                Loading...
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeTrunkModal()">Cancel</button>
+                <button class="btn-save" onclick="saveTrunks()">Save</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DELETE RATE MODAL -->
+    <div id="deleteRateModal" class="modal-overlay" style="display:none;">
+      <div class="modal-box">
+
+        <div class="modal-title">🗑 Delete rate</div>
+
+        <label>Destination</label>
+        <div class="multi-dd">
+          <div class="dd-header" onclick="toggleDD('networkDD')">Select network</div>
+
+          <div class="dd-body" id="networkDD">
+            <input type="text"
+                   placeholder="Search network..."
+                   class="dd-search"
+                   onkeyup="filterDeleteNetworks(this.value)">
+          </div>
+        </div>
+
+        <label>Codes</label>
+        <div class="multi-dd">
+          <div class="dd-header" onclick="toggleDD('codeDD')">Select codes</div>
+          <div class="dd-body" id="codeDD"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn btn-danger" onclick="deleteRate()">Delete</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- UPDATE RATE MODAL -->
+    <div id="updateRateModal" class="modal-overlay" style="display:none; z-index:10001;">
+      <div class="modal-box">
+
+        <div class="modal-title">✏️ Update rate</div>
+
+        <!-- UPDATE BLOCKS -->
+        <div id="updateBlocks"></div>
+
+        <button type="button" class="btn btn-primary" style="margin-top:14px" onclick="addUpdateBlock()">
+          + Another update
+        </button>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
+          <button class="btn-save" id="updateSaveBtn" onclick="confirmUpdate()">
+            <span class="btn-text">Save</span>
+            <span class="btn-loader" style="display:none">⏳ Updating...</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+		<script th:inline="javascript">
+	    const EXISTING_TRUNKS = /*[[${client.trunks}]]*/ [];
+		
+		//========================================//
+
+		// 🔥 GLOBAL CACHES
+		const CACHE = {
+		  networks: null,
+		  codes: {},        // key: network
+		  rateSheet: {},    // key: client_trunk
+		  trunks: null
+		};
+
+		let DELETE_NETWORKS = [];
+		let SELECTED_NETWORKS = [];
+		let SELECTED_CODES_MAP = {}; // { network : [codes] }
+
+		let SELECTED_CLIENT = "";
+		let SELECTED_TRUNK  = "";
+
+		let CURRENT_CLIENT = null;
+		let CURRENT_TRUNK = null;
+
+
+		let UPDATE_RATE_DATA = [];   // rate sheet rows
+		let SELECTED_UPDATE_ROW = null;
+
+		let UPDATE_NETWORK_LIST = [];
+
+
+		/* ========= OPEN UPDATE MODAL ========= */
+		function openUpdateModal() {
+
+		  if (!SELECTED_CLIENT || !SELECTED_TRUNK) {
+		    alert("Client / Trunk not selected");
+		    return;
+		  }
+
+		  document.getElementById("updateRateModal").style.display = "block";
+
+		  // reset
+		  document.getElementById("updateBlocks").innerHTML = "";
+		  updateIndex = 0;
+		  UPDATE_NETWORK_LIST = [];
+
+		  fetch(
+		    `http://45.195.90.145:8089/rateSheet/excel/dest` +
+		    `?clientName=${encodeURIComponent(SELECTED_CLIENT)}` +
+		    `&trunkName=${encodeURIComponent(SELECTED_TRUNK)}`
+		  )
+		  .then(r => r.json())
+		  .then(res => {
+
+		    if (!res || !Array.isArray(res.network)) {
+		      alert("No destinations found");
+		      return;
+		    }
+
+		    UPDATE_NETWORK_LIST = res.network;   // ✅ SAVE NETWORKS
+
+		    // 🔥 ADD FIRST UPDATE BLOCK
+		    addUpdateBlock();
+
+		  })
+		  .catch(() => alert("Failed to load destinations"));
+		}
+
+
+		let UPDATE_CODES_DATA = [];
+		let SELECTED_UPDATE_CODES = [];
+		let UPDATE_NETWORK_RATE_CACHE = {};
+
+
+
+		function toggleAllUpdateCodes(cb){
+		  SELECTED_UPDATE_CODES = [];
+
+		  document.querySelectorAll(
+		    "#updateCodeDD input[type=checkbox][value]"
+		  )
+		    .forEach(c => {
+		      if(c.value){
+		        c.checked = cb.checked;
+		        if(cb.checked) SELECTED_UPDATE_CODES.push(c.value);
+		      }
+		    });
+		}
+
+		function onUpdateCodeCheck(cb){
+
+		  if(!cb.value) return; // 🔥 EXTRA SAFETY
+
+		  if(cb.checked){
+		    if(!SELECTED_UPDATE_CODES.includes(cb.value)){
+		      SELECTED_UPDATE_CODES.push(cb.value);
+		    }
+		  }else{
+		    SELECTED_UPDATE_CODES =
+		      SELECTED_UPDATE_CODES.filter(v => v !== cb.value);
+		  }
+		}
+
+
+		function onUpdateCodeChange(){
+
+		  const code = document.getElementById("updateCode").value;
+		  if(!code) return;
+
+		  const obj = UPDATE_CODES_DATA.find(c => String(c.code) === String(code));
+		  if(!obj) return;
+
+		  document.getElementById("updateRate").value = obj.rate || "";
+		  document.getElementById("updateBillingCycle").value = obj.billingCycle || "";
+		  document.getElementById("updateEffectiveDate").value =
+		    convertToInputDate(obj.effectiveDate || "");
+		}
+
+		function formatDateForInput(dateStr){
+
+		  if(!dateStr || !dateStr.includes("-")) return "";
+
+		  const parts = dateStr.split("-");
+		  if(parts.length !== 3) return "";
+
+		  const [day, mon, yr] = parts;
+
+		  const months = {
+		    Jan:"01", Feb:"02", Mar:"03", Apr:"04",
+		    May:"05", Jun:"06", Jul:"07", Aug:"08",
+		    Sep:"09", Oct:"10", Nov:"11", Dec:"12"
+		  };
+
+		  if(!months[mon]) return "";
+
+		  return `20${yr}-${months[mon]}-${day}`;
+		}
+
+
+		function formatDateForBackend(date) {
+
+		  if (!date) return "";
+
+		  const d = new Date(date);
+
+		  const monthsShort = [
+		    "Jan","Feb","Mar","Apr","May","Jun",
+		    "Jul","Aug","Sep","Oct","Nov","Dec"
+		  ];
+
+		  const day  = String(d.getDate()).padStart(2,"0");
+		  const year = String(d.getFullYear()).slice(-2);
+		  const month = monthsShort[d.getMonth()];
+
+		  // ✅ ALWAYS backend-safe format
+		  return `${day}-${month}-${year}`;
+		}
+
+
+		function convertToInputDate(dateStr){
+		  if(!dateStr) return "";
+
+		  const months = {
+		      Jan:"01", January:"01",
+		      Feb:"02", February:"02",
+		      Mar:"03", March:"03",
+		      Apr:"04", April:"04",
+		      May:"05",
+		      Jun:"06", June:"06",
+		      Jul:"07", July:"07",
+		      Aug:"08", August:"08",
+		      Sep:"09", September:"09",
+		      Oct:"10", October:"10",
+		      Nov:"11", November:"11",
+		      Dec:"12", December:"12"
+		    };
+
+
+		  const clean = dateStr.replace(/-/g," ").trim();
+		  const parts = clean.split(/\s+/);
+
+		  if(parts.length < 3) return "";
+
+		  let day   = parts[0].padStart(2,"0");
+		  let month = months[parts[1]];
+		  let year  = parts[2];
+
+		  if(!month) return "";
+
+		  if(year.length === 2){
+		    year = "20" + year;
+		  }
+
+		  return `${year}-${month}-${day}`;
+		}
+
+
+		let UPDATE_LOCK = false;
+
+
+		/* ========= CLOSE ========= */
+		function closeUpdateModal(){
+		  document.getElementById("updateRateModal").style.display = "none";
+		}
+
+
+
+
+		/*==================================================*/
+		document.addEventListener('click', function (e) {
+		    if (e.target.classList.contains('view-attachment')) {
+
+		        CURRENT_CLIENT = e.target.dataset.client;
+		        CURRENT_TRUNK = e.target.dataset.trunk;
+
+		        openRateModal(); // existing function
+		    }
+		});
+
+		let SEND_RATE_LOCK = false;
+
+		function sendRate() {
+
+		  if (SEND_RATE_LOCK) {
+		    console.warn("⛔ Send already in progress");
+		    return;
+		  }
+
+		  SEND_RATE_LOCK = true;   // 🔒 LOCK
+
+		  if (!SELECTED_CLIENT || !SELECTED_TRUNK) {
+		    alert("Client / Trunk missing");
+		    SEND_RATE_LOCK = false;
+		    return;
+		  }
+
+		  const btn = document.getElementById("sendRateBtn");
+		  const text = btn.querySelector(".btn-text");
+		  const loader = btn.querySelector(".btn-loader");
+
+		  btn.disabled = true;
+		  text.textContent = "Sending...";
+		  loader.style.display = "inline-block";
+
+		  fetch("http://45.195.90.145:8089/mail/sendUpdatedRate", {
+		    method: "POST",
+		    headers: { "Content-Type": "application/json" },
+		    body: JSON.stringify({
+		      clientName: SELECTED_CLIENT,
+		      trunkName: SELECTED_TRUNK
+		    })
+		  })
+		  .then(res => {
+		    if (!res.ok) throw new Error();
+		    alert("✅ Rate sent successfully");
+		  })
+		  .catch(() => alert("❌ Mail not sent"))
+		  .finally(() => {
+		    btn.disabled = false;
+		    text.textContent = "📤 Send Rate";
+		    loader.style.display = "none";
+		    SEND_RATE_LOCK = false; // 🔓 UNLOCK
+		  });
+		}
+
+
+
+
+
+		function enableEditMode() {
+		    document.querySelectorAll('.view-mode').forEach(e => e.style.display = 'none');
+		    document.querySelectorAll('.edit-mode').forEach(e => e.style.display = 'inline-block');
+
+		    document.getElementById('editActions').style.display = 'flex';
+
+		    // hide edit button
+		    event.target.style.display = 'none';
+		}
+
+		function cancelEdit() {
+		    location.reload(); // easiest + safest
+		}
+
+		function updateClient() {
+
+		    const payload = {
+		        name: document.getElementById('clientNameInput').value.trim(),
+		        primaryEmail: document.getElementById('primaryEmails').value
+		                        .split(',').map(e => e.trim()).filter(Boolean),
+		        ccEmails: document.getElementById('ccEmails').value
+		                        .split(',').map(e => e.trim()).filter(Boolean),
+		        amName: document.getElementById('amName').value.trim(),
+		        accountManagerEmail: document.getElementById('amEmail').value.trim()
+		    };
+
+		    fetch('http://45.195.90.145:8089/client/updateClient', {
+		        method: 'PUT',   // ✅ POST → PUT
+		        headers: {
+		            'Content-Type': 'application/json'
+		        },
+		        body: JSON.stringify(payload)
+		    })
+		    .then(res => {
+		        if (!res.ok) throw new Error("Update failed");
+		        return res.text();
+		    })
+		    .then(() => {
+		        alert('Client updated successfully');
+		        location.reload();
+		    })
+		    .catch(err => {
+		        alert('Error updating client');
+		        console.error(err);
+		    });
+		}
+
+
+
+		/* ================= OPEN DELETE MODAL ================= */
+
+		function openDeleteModal(){
+
+		  if(!SELECTED_CLIENT || !SELECTED_TRUNK){
+		    alert("Client / Trunk not selected");
+		    return;
+		  }
+
+		  document.getElementById("deleteRateModal").style.display = "block";
+
+		  fetch(
+		    `http://45.195.90.145:8089/rateSheet/excel/dest` +
+		    `?clientName=${encodeURIComponent(SELECTED_CLIENT)}` +
+		    `&trunkName=${encodeURIComponent(SELECTED_TRUNK)}`
+		  )
+		  .then(r => {
+		    if(!r.ok) throw new Error("API failed");
+		    return r.json();
+		  })
+		  .then(res => {
+
+		    console.log("DEST API RESPONSE 👉", res);
+
+		    // ✅ REAL FIX
+		    DELETE_NETWORKS = res.network || [];
+
+		    if(DELETE_NETWORKS.length === 0){
+		      alert("No networks found");
+		      return;
+		    }
+
+		    renderDeleteNetworks();
+		  })
+		  .catch(err => {
+		    console.error("NETWORK LOAD ERROR:", err);
+		    alert("Failed to load networks");
+		  });
+		}
+
+		function renderDeleteNetworks(){
+
+		  const box = document.getElementById("networkDD");
+
+		  box.innerHTML = `
+		    <input type="text"
+		           placeholder="Search network..."
+		           class="dd-search"
+		           onkeyup="filterDeleteNetworks(this.value)">
+
+		    <label>
+		      <input type="checkbox" onchange="toggleAllNetworks(this)">
+		      <b>Select All Networks</b>
+		    </label>
+		  `;
+
+		  DELETE_NETWORKS.forEach(n => {
+		    box.innerHTML += `
+		      <label class="net-item">
+		        <input type="checkbox"
+		               value="${n}"
+		               onchange="onNetworkSelect(this)">
+		        ${n}
+		      </label>
+		    `;
+		  });
+		}
+
+		function filterDeleteNetworks(text){
+
+		  text = text.toLowerCase();
+
+		  document
+		    .querySelectorAll("#networkDD .net-item")
+		    .forEach(label => {
+
+		      const name = label.innerText.toLowerCase();
+		      label.style.display =
+		        name.includes(text) ? "flex" : "none";
+		    });
+		}
+
+		function filterUpdateNetworks(idx, text){
+
+		  text = text.toLowerCase();
+
+		  document
+		    .querySelectorAll(`#updateNetworkDD_${idx} .upd-net-item`)
+		    .forEach(label => {
+
+		      const name = label.innerText.toLowerCase();
+		      label.style.display =
+		        name.includes(text) ? "flex" : "none";
+		    });
+		}
+
+
+
+		function toggleAllNetworks(cb){
+
+		  SELECTED_NETWORKS = [];
+
+		  document.querySelectorAll("#networkDD input[type=checkbox]")
+		    .forEach(c => {
+		      if(c.value){
+		        c.checked = cb.checked;
+		        if(cb.checked) SELECTED_NETWORKS.push(c.value);
+		      }
+		    });
+
+		  loadCodesForNetworks();
+		}
+
+
+		function onNetworkSelect(cb){
+
+		  if(cb.checked){
+		    SELECTED_NETWORKS.push(cb.value);
+		  }else{
+		    SELECTED_NETWORKS =
+		      SELECTED_NETWORKS.filter(v => v !== cb.value);
+		  }
+
+		  loadCodesForNetworks();
+		}
+
+		async function loadCodesForNetworks(){
+
+		  const box = document.getElementById("codeDD");
+		  box.innerHTML = "";
+
+		  if (SELECTED_NETWORKS.length === 0) {
+		    box.innerHTML = "<i>Select network first</i>";
+		    return;
+		  }
+
+		  // 🔥 HARD LIMIT (India safe)
+		  const networks = SELECTED_NETWORKS; // 🚀 NO LIMIT
+
+
+		  box.innerHTML += `
+		    <label>
+		      <input type="checkbox" onchange="toggleAllCodes(this)">
+		      <b>Select All</b>
+		    </label>
+		  `;
+
+		  SELECTED_CODES_MAP = {};
+
+		  // 🔥 SEQUENTIAL FETCH (NO FREEZE)
+		  for (const network of networks) {
+
+		    SELECTED_CODES_MAP[network] = [];
+
+		    const res = await fetch(
+		      `http://45.195.90.145:8089/rateSheet/excel/codesAndRate` +
+		      `?clientName=${encodeURIComponent(SELECTED_CLIENT)}` +
+		      `&trunkName=${encodeURIComponent(SELECTED_TRUNK)}` +
+		      `&country=${encodeURIComponent(network)}`
+		    );
+
+		    const data = await res.json();
+		    if (!Array.isArray(data.codesAndNetworks)) continue;
+
+		    const frag = document.createDocumentFragment();
+
+		    data.codesAndNetworks.forEach(obj => {
+		      const lbl = document.createElement("label");
+		      lbl.style.display = "block";
+		      lbl.innerHTML = `
+		        <input type="checkbox"
+		               value="${obj.code}"
+		               data-network="${network}"
+		               onchange="onCodeSelect(this)">
+		        ${obj.code} (${obj.network})
+		      `;
+		      frag.appendChild(lbl);
+		    });
+
+		    box.appendChild(frag);
+		  }
+		}
+
+
+		function toggleDD(id){
+		  const el = document.getElementById(id);
+
+		  document.querySelectorAll(".dd-body").forEach(d => {
+		    if(d !== el) d.style.display = "none";
+		  });
+
+		  el.style.display = el.style.display === "block" ? "none" : "block";
+		}
+
+		/* 🔥 click outside close */
+		document.addEventListener("click", function(e){
+		  if(!e.target.closest(".multi-dd")){
+		    document.querySelectorAll(".dd-body")
+		      .forEach(d => d.style.display = "none");
+		  }
+		});
+
+
+		function toggleAllCodes(cb){
+
+		  SELECTED_CODES = [];
+
+		  document.querySelectorAll("#codeDD input[type=checkbox]")
+		    .forEach(c => {
+		      if(c.value){
+		        c.checked = cb.checked;
+		        if(cb.checked) SELECTED_CODES.push(c.value);
+		      }
+		    });
+		}
+
+
+		function onCodeSelect(cb){
+
+		  const network = cb.dataset.network;
+
+		  if(!SELECTED_CODES_MAP[network]){
+		    SELECTED_CODES_MAP[network] = [];
+		  }
+
+		  if(cb.checked){
+		    SELECTED_CODES_MAP[network].push(cb.value);
+		  }else{
+		    SELECTED_CODES_MAP[network] =
+		      SELECTED_CODES_MAP[network].filter(v => v !== cb.value);
+		  }
+		}
+
+		async function deleteRate(){
+
+		  if(SELECTED_NETWORKS.length === 0){
+		    alert("Please select at least one network");
+		    return;
+		  }
+
+		  const payload = {
+		    clientName : SELECTED_CLIENT,
+		    trunkName  : SELECTED_TRUNK,
+		    destination: SELECTED_NETWORKS   // ✅ ARRAY
+		  };
+
+		  // OPTIONAL: codes bhi bhejne ho to
+		  const allCodes = [];
+		  Object.values(SELECTED_CODES_MAP).forEach(arr => {
+		    if(Array.isArray(arr)) allCodes.push(...arr);
+		  });
+
+		  if(allCodes.length > 0){
+		    payload.codes = allCodes;
+		  }
+
+		  console.log("🔥 FINAL DELETE PAYLOAD", payload);
+
+		  try{
+		    const res = await fetch(
+		      "http://45.195.90.145:8089/rateSheet/excel/deleteCodes",
+		      {
+		        method : "DELETE",
+		        headers: { "Content-Type":"application/json" },
+		        body   : JSON.stringify(payload)
+		      }
+		    );
+
+		    if(!res.ok) throw new Error();
+
+		    alert("✅ Delete Successful");
+		    closeDeleteModal();
+		    refreshRateSheet();
+
+		  }catch(err){
+		    console.error(err);
+		    alert("❌ Delete Failed");
+		  }
+		}
+
+
+
+
+		/* ================= CLOSE MODAL ================= */
+		function closeDeleteModal(){
+
+		  document.getElementById("deleteRateModal").style.display = "none";
+		  document.getElementById("networkDD").innerHTML = "";
+		  document.getElementById("codeDD").innerHTML = "";
+
+		  SELECTED_NETWORKS = [];
+		  SELECTED_CODES = [];
+		}
+
+
+
+
+		let RATE_SEARCH_TIMER = null;
+
+		function searchRateSheet() {
+
+		  clearTimeout(RATE_SEARCH_TIMER);
+
+		  RATE_SEARCH_TIMER = setTimeout(() => {
+
+		    const search =
+		      document.getElementById("rateSearch").value.toLowerCase();
+
+		    const rows = document.querySelectorAll("#rateTableBody tr");
+
+		    rows.forEach(row => {
+
+		      // 🔥 cache once
+		      if (!row.dataset.search) {
+		        row.dataset.search = row.textContent.toLowerCase();
+		      }
+
+		      row.style.display =
+		        row.dataset.search.includes(search) ? "" : "none";
+		    });
+
+		  }, 250); // ✅ debounce
+		}
+
+
+
+		let SELECTED_UPDATE_NETWORKS = {}; // { idx : [networks] }
+		let updateIndex = 0;
+
+		function addUpdateBlock(prefill = {}) {
+		  const idx = updateIndex++;
+
+		  const block = document.createElement("div");
+		  block.className = "update-block";
+		  block.style.border = "1px solid #ddd";
+		  block.style.padding = "10px";
+		  block.style.marginTop = "10px";
+		  block.style.borderRadius = "8px";
+
+		  block.innerHTML = `
+		    <h4>Update #${idx + 1}</h4>
+
+			<div class="form-group">
+			  <label>Destination</label>
+
+			  <div class="multi-dd">
+			    <div class="dd-header"
+			         onclick="toggleDD('updateNetworkDD_${idx}')">
+			      Select Network(s)
+			    </div>
+
+			    <div class="dd-body" id="updateNetworkDD_${idx}"></div>
+			  </div>
+			</div>
+
+
+		    <div class="form-group">
+		      <label>Codes</label>
+		      <div class="multi-dd">
+		        <div class="dd-header"
+		             onclick="toggleDD('updateCodeDD_${idx}')">
+		          Select Codes
+		        </div>
+		        <div class="dd-body" id="updateCodeDD_${idx}"></div>
+		      </div>
+		    </div>
+
+		    <div class="form-group">
+		      <label>Rate</label>
+		      <input type="number" step="0.0001" id="updateRate_${idx}">
+		    </div>
+
+		    <div class="form-group">
+		      <label>Billing Cycle</label>
+		      <input type="text" id="updateBilling_${idx}" placeholder="60/60">
+		    </div>
+
+		    <div class="form-group">
+		      <label>Effective Date</label>
+		      <input type="date" id="updateDate_${idx}">
+		    </div>
+		  `;
+
+		  document.getElementById("updateBlocks").appendChild(block);
+
+		  populateNetworks(idx, prefill.network);
+		}
+
+
+		function populateNetworks(idx) {
+
+		  const box = document.getElementById(`updateNetworkDD_${idx}`);
+		  box.innerHTML = "";
+
+		  SELECTED_UPDATE_NETWORKS[idx] = [];
+
+		  // 🔍 SEARCH BOX
+		  box.innerHTML += `
+		    <input type="text"
+		           class="dd-search"
+		           placeholder="Search network..."
+		           onkeyup="filterUpdateNetworks(${idx}, this.value)">
+		  `;
+
+		  // ✅ SELECT ALL
+		  box.innerHTML += `
+		    <label>
+		      <input type="checkbox"
+		             onchange="toggleAllUpdateNetworks(${idx}, this)">
+		      <b>Select All</b>
+		    </label>
+		  `;
+
+		  UPDATE_NETWORK_LIST.forEach(net => {
+		    box.innerHTML += `
+		      <label class="upd-net-item">
+		        <input type="checkbox"
+		               value="${net}"
+		               onchange="onUpdateNetworkSelect(${idx}, this)">
+		        ${net}
+		      </label>
+		    `;
+		  });
+		}
+
+
+
+		function onUpdateNetworkChange(idx) {
+
+		  const network =
+		    document.getElementById(`updateNetwork_${idx}`).value;
+
+		  const box =
+		    document.getElementById(`updateCodeDD_${idx}`);
+
+		  box.innerHTML = "";
+
+		  if (!network) return;
+
+		  fetch(
+		    `http://45.195.90.145:8089/rateSheet/excel/codesAndRate` +
+		    `?clientName=${encodeURIComponent(SELECTED_CLIENT)}` +
+		    `&trunkName=${encodeURIComponent(SELECTED_TRUNK)}` +
+		    `&country=${encodeURIComponent(network)}`
+		  )
+		  .then(r => r.json())
+		  .then(data => {
+
+		    if (!data || !Array.isArray(data.codes)) {
+		      box.innerHTML = "<i>No codes found</i>";
+		      return;
+		    }
+
+		    box.innerHTML += `
+		      <label>
+		        <input type="checkbox"
+		               onchange="toggleAllCodesForBlock(${idx}, this)">
+		        <b>Select All</b>
+		      </label>
+		    `;
+
+		    data.codes.forEach(code => {
+		      box.innerHTML += `
+		        <label>
+		          <input type="checkbox" value="${code}">
+		          ${code}
+		        </label>
+		      `;
+		    });
+
+		    document.getElementById(`updateRate_${idx}`).value =
+		      data.rate || "";
+
+		    document.getElementById(`updateBilling_${idx}`).value =
+		      data.billingCycle || "";
+
+		    document.getElementById(`updateDate_${idx}`).value =
+		      convertToInputDate(data.effectiveDate || "");
+		  });
+		}
+
+
+		function confirmUpdate() {
+
+		  if (UPDATE_LOCK) return;
+
+		  const btn = document.getElementById("updateSaveBtn");
+		  const text = btn.querySelector(".btn-text");
+		  const loader = btn.querySelector(".btn-loader");
+
+		  const rateDetails = [];
+
+		  for (let i = 0; i < updateIndex; i++) {
+
+		    const networks = SELECTED_UPDATE_NETWORKS[i] || [];
+		    if (networks.length === 0) continue;
+
+		    const codes = [];
+		    const seen = new Set();
+
+		    document
+		      .querySelectorAll(
+		        `#updateCodeDD_${i} input[type=checkbox][value]:checked`
+		      )
+		      .forEach(cb => {
+		        const key = cb.value + "|" + cb.dataset.network;
+		        if (!seen.has(key)) {
+		          seen.add(key);
+		          codes.push({
+		            code: cb.value,
+		            dest: cb.dataset.network
+		          });
+		        }
+		      });
+
+		    if (codes.length === 0) continue;
+
+		    rateDetails.push({
+		      codes,
+		      rate: document.getElementById(`updateRate_${i}`).value,
+		      billingCycle: document.getElementById(`updateBilling_${i}`).value,
+		      effectiveDate: formatDateForBackend(
+		        document.getElementById(`updateDate_${i}`).value
+		      )
+		    });
+		  }
+
+		  if (rateDetails.length === 0) {
+		    alert("Please add at least one update");
+		    return;
+		  }
+
+		  const payload = {
+		    clientName: SELECTED_CLIENT,
+		    trunkName: SELECTED_TRUNK,
+		    rateDetails
+		  };
+
+		  // 🔒 LOCK + LOADER
+		  UPDATE_LOCK = true;
+		  btn.disabled = true;
+		  text.style.display = "none";
+		  loader.style.display = "inline";
+
+		  fetch("http://45.195.90.145:8089/rateSheet/excel/updateRate", {
+		    method: "POST",
+		    headers: { "Content-Type": "application/json" },
+		    body: JSON.stringify(payload)
+		  })
+		  .then(res => {
+		    if (!res.ok) throw new Error();
+		    return res.text();
+		  })
+		  .then(() => {
+		    alert("✅ Rate updated successfully");
+		    closeUpdateModal();
+		    refreshRateSheet();
+		  })
+		  .catch(() => alert("❌ Update failed"))
+		  .finally(() => {
+		    UPDATE_LOCK = false;
+		    btn.disabled = false;
+		    text.style.display = "inline";
+		    loader.style.display = "none";
+		  });
+		}
+
+		function toggleAllUpdateNetworks(idx, cb) {
+
+		  SELECTED_UPDATE_NETWORKS[idx] = [];
+
+		  document
+		    .querySelectorAll(`#updateNetworkDD_${idx} input[type=checkbox][value]`)
+		    .forEach(c => {
+		      c.checked = cb.checked;
+		      if (cb.checked) {
+		        SELECTED_UPDATE_NETWORKS[idx].push(c.value);
+		      }
+		    });
+
+		  loadCodesForUpdateBlock(idx);
+		}
+
+		function onUpdateNetworkSelect(idx, cb) {
+
+		  if (!SELECTED_UPDATE_NETWORKS[idx]) {
+		    SELECTED_UPDATE_NETWORKS[idx] = [];
+		  }
+
+		  if (cb.checked) {
+		    SELECTED_UPDATE_NETWORKS[idx].push(cb.value);
+		  } else {
+		    SELECTED_UPDATE_NETWORKS[idx] =
+		      SELECTED_UPDATE_NETWORKS[idx].filter(v => v !== cb.value);
+		  }
+
+		  loadCodesForUpdateBlock(idx);
+		}
+
+		async function loadCodesForUpdateBlock(idx) {
+
+		  const box = document.getElementById(`updateCodeDD_${idx}`);
+		  box.innerHTML = "";
+
+		  const networks = SELECTED_UPDATE_NETWORKS[idx] || [];
+
+		  if (networks.length === 0) {
+		    box.innerHTML = "<i>Select destination first</i>";
+		    return;
+		  }
+
+		  // 🔥 LIMIT
+		  const safeNetworks = networks; // 🚀 NO LIMIT
+
+
+		  box.innerHTML += `
+		    <label>
+		      <input type="checkbox"
+		             onchange="toggleAllCodesForBlock(${idx}, this)">
+		      <b>Select All Codes</b>
+		    </label>
+		  `;
+
+		  for (const network of safeNetworks) {
+
+		    const res = await fetch(
+		      `http://45.195.90.145:8089/rateSheet/excel/codesAndRate` +
+		      `?clientName=${encodeURIComponent(SELECTED_CLIENT)}` +
+		      `&trunkName=${encodeURIComponent(SELECTED_TRUNK)}` +
+		      `&country=${encodeURIComponent(network)}`
+		    );
+
+		    const data = await res.json();
+		    if (!Array.isArray(data.codesAndNetworks)) continue;
+
+		    // 🔥 Autofill once (first network only)
+		    document.getElementById(`updateRate_${idx}`).value =
+		      data.rate ?? "";
+		    document.getElementById(`updateBilling_${idx}`).value =
+		      data.billingCycle ?? "";
+		    document.getElementById(`updateDate_${idx}`).value =
+		      convertToInputDate(data.effectiveDate ?? "");
+
+		    const frag = document.createDocumentFragment();
+
+		    data.codesAndNetworks.forEach(obj => {
+		      const lbl = document.createElement("label");
+		      lbl.style.display = "block";
+		      lbl.innerHTML = `
+		        <input type="checkbox"
+		               value="${obj.code}"
+		               data-network="${obj.network}">
+		        ${obj.code} (${obj.network})
+		      `;
+		      frag.appendChild(lbl);
+		    });
+
+		    box.appendChild(frag);
+		  }
+		}
+
+
+		function toggleAllCodesForBlock(idx, cb) {
+		  document
+		    .querySelectorAll(`#updateCodeDD_${idx} input[type=checkbox][value]`)
+		    .forEach(c => c.checked = cb.checked);
+		}
+
+		function autoFillIfSame(idx) {
+
+		  const networks = SELECTED_UPDATE_NETWORKS[idx];
+		  if (!networks || networks.length === 0) return;
+
+		  let base = UPDATE_NETWORK_RATE_CACHE[networks[0]];
+		  if (!base) return;
+
+		  let same = true;
+
+		  for (let n of networks) {
+		    const cur = UPDATE_NETWORK_RATE_CACHE[n];
+		    if (!cur ||
+		        cur.rate !== base.rate ||
+		        cur.billing !== base.billing ||
+		        cur.date !== base.date) {
+		      same = false;
+		      break;
+		    }
+		  }
+
+		  if (same) {
+		    document.getElementById(`updateRate_${idx}`).value = base.rate || "";
+		    document.getElementById(`updateBilling_${idx}`).value = base.billing || "";
+		    document.getElementById(`updateDate_${idx}`).value =
+		      convertToInputDate(base.date || "");
+		  } else {
+		    // 🔥 DIFFERENT VALUES → blank
+		    document.getElementById(`updateRate_${idx}`).value = "";
+		    document.getElementById(`updateBilling_${idx}`).value = "";
+		    document.getElementById(`updateDate_${idx}`).value = "";
+		  }
+		}
+
+		function refreshRateSheet(){
+
+		  if(!SELECTED_CLIENT || !SELECTED_TRUNK){
+		    alert("Client / Trunk not selected");
+		    return;
+		  }
+
+		  // Optional loader (reuse same table area)
+		  const tbody = document.getElementById("rateTableBody");
+		  tbody.innerHTML = `
+		    <tr>
+		      <td colspan="6" style="text-align:center">
+		        🔄 Refreshing rates...
+		      </td>
+		    </tr>
+		  `;
+
+		  fetch(
+		    "http://45.195.90.145:8089/rateSheet/getRateSheetContent"
+		    + "?clientName=" + encodeURIComponent(SELECTED_CLIENT)
+		    + "&trunkName=" + encodeURIComponent(SELECTED_TRUNK)
+		  )
+		  .then(res => res.json())
+		  .then(data => {
+		    openRateModal(data); // same renderer, modal stays open
+		  })
+		  .catch(() => {
+		    alert("❌ Failed to refresh rates");
+		  });
+		}
+		
+	</script>
+
+</div>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+
+<div th:fragment="content">
+
+	<div class="pg-head">
+		<div>
+			<h1>Promotion</h1>
+			<p>History of promotion mails sent to clients, with delivery status for each one.</p>
+		</div>
+		<a class="add-btn" th:href="@{'/?page=promotion-form'}"><i class="ti ti-send"></i> Send promotion email</a>
+	</div>
+
+	<div class="stats">
+		<div class="stat"><div class="stat-ic i1"><i class="ti ti-mail"></i></div><div><b id="stTotal">0</b><span>Total mails</span></div></div>
+		<div class="stat"><div class="stat-ic i2"><i class="ti ti-circle-check"></i></div><div><b id="stSent">0</b><span>Sent</span></div></div>
+		<div class="stat"><div class="stat-ic i4"><i class="ti ti-alert-circle"></i></div><div><b id="stFailed">0</b><span>Failed</span></div></div>
+	</div>
+
+	<div class="panel">
+		<div class="panel-head">
+			<div>
+				<div class="panel-title">Sent promotions</div>
+				<div class="panel-sub">Search by client name to filter the history.</div>
+			</div>
+			<div class="search-box" style="margin:0;width:300px">
+				<input id="searchBox" type="text" placeholder="Search client name..." onkeyup="applyFilters()">
+			</div>
+		</div>
+
+		<table class="promotion-table" id="promoTable">
+			<thead>
+			<tr>
+				<th>Client name</th>
+				<th>Send date</th>
+				<th>Status</th>
+			</tr>
+			</thead>
+
+			<!-- 🔥 DYNAMIC BODY -->
+			<tbody id="promotionTableBody">
+			</tbody>
+		</table>
+
+		<div id="emptyState" class="empty-state" style="display:none">
+			<i class="ti ti-mail-off"></i>
+			<h3>No promotions found</h3>
+			<p>Promotion mails you send will show up here.</p>
+			<a class="add-btn" th:href="@{'/?page=promotion-form'}"><i class="ti ti-send"></i> Send promotion email</a>
+		</div>
+
+		<div class="pagination">
+			<button id="prevBtn" onclick="prevPage()"><i class="ti ti-chevron-left"></i> Prev</button>
+			<span id="pageInfo"></span>
+			<button id="nextBtn" onclick="nextPage()">Next <i class="ti ti-chevron-right"></i></button>
+		</div>
+	</div>
+
+	<style>
+		.promotion-table td:first-child{font-weight:700;color:var(--ink)}
+		.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12.5px;font-weight:700}
+		.badge:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+		.badge.sent{background:#ecfdf3;color:#15803d}
+		.badge.failed{background:#fef2f2;color:#b91c1c}
+	</style>
+
+	<!-- 🔥 SCRIPT -->
+	<script>
+		let rowData = [];
+		let allRows = [];
+		let filteredIndexes = [];
+		let currentPage = 1;
+		const rowsPerPage = 10;
+
+		// 🔥 LOAD DATA
+		document.addEventListener("DOMContentLoaded", () => {
+			fetch("http://45.195.90.145:8089/mail/getPromotionRecord")
+				.then(res => res.json())
+				.then(data => {
+					rowData = data;
+					renderTable(data);
+				})
+				.catch(err => {
+					console.error(err);
+					renderTable([]);
+				});
+		});
+
+		function renderTable(data) {
+			const tbody = document.getElementById("promotionTableBody");
+			tbody.innerHTML = "";
+
+			let sent = 0;
+
+			data.forEach(item => {
+				const tr = document.createElement("tr");
+
+				const statusClass =
+					item.status === "MAIL_SENT" ? "sent" : "failed";
+				if (statusClass === "sent") sent++;
+
+				tr.innerHTML = `
+					<td>${item.clientName}</td>
+					<td>${item.sendDate}</td>
+					<td>
+						<span class="badge ${statusClass}">
+							${item.status.replace("_", " ")}
+						</span>
+					</td>
+				`;
+
+				tbody.appendChild(tr);
+			});
+
+			document.getElementById("stTotal").textContent = data.length;
+			document.getElementById("stSent").textContent = sent;
+			document.getElementById("stFailed").textContent = data.length - sent;
+
+			allRows = Array.from(tbody.querySelectorAll("tr"));
+			filteredIndexes = allRows.map((_, i) => i);
+			showPage(1);
+		}
+
+		// 🔍 SEARCH
+		function applyFilters() {
+			const search = document.getElementById("searchBox").value.toLowerCase();
+			filteredIndexes = [];
+
+			rowData.forEach((item, index) => {
+				if (item.clientName.toLowerCase().includes(search)) {
+					filteredIndexes.push(index);
+				}
+			});
+
+			showPage(1);
+		}
+
+		// 📄 PAGINATION
+		function showPage(page) {
+			currentPage = page;
+			allRows.forEach(row => row.style.display = "none");
+
+			const start = (page - 1) * rowsPerPage;
+			const end = start + rowsPerPage;
+
+			filteredIndexes.slice(start, end).forEach(i => {
+				allRows[i].style.display = "";
+			});
+
+			document.getElementById("prevBtn").disabled = page === 1;
+			document.getElementById("nextBtn").disabled = end >= filteredIndexes.length;
+
+			const totalPages = Math.max(1, Math.ceil(filteredIndexes.length / rowsPerPage));
+			document.getElementById("pageInfo").textContent =
+				"Page " + page + " of " + totalPages + " · " + filteredIndexes.length + " records";
+
+			document.getElementById("emptyState").style.display =
+				filteredIndexes.length === 0 ? "block" : "none";
+			document.getElementById("promoTable").style.display =
+				filteredIndexes.length === 0 ? "none" : "table";
+		}
+
+		function nextPage() {
+			showPage(currentPage + 1);
+		}
+
+		function prevPage() {
+			showPage(currentPage - 1);
+		}
+	</script>
+
+</div>
+
+</body>
+</html>

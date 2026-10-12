@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<div th:fragment="content">
+
+<style>
+/* ===== REPORTS PAGE (trunks.html) – ka purana <style> poora isse replace karo ===== */
+.client-search-wrapper{position:relative;width:100%}
+.country-btn{width:100%;padding:12px 14px;border:1px solid #d1d7e3;background:#f8fafc;text-align:left;cursor:pointer;border-radius:11px;font-size:14px;font-weight:600;color:var(--ink);transition:.15s}
+.country-btn:hover{border-color:var(--accent);background:#fff}
+.country-menu{display:none;position:absolute;top:100%;left:0;width:100%;margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:12px;z-index:9999;max-height:260px;overflow-y:auto;box-shadow:0 18px 40px rgba(15,23,42,.18)}
+.country-menu.open{display:block}
+.country-search{width:calc(100% - 16px);margin:8px;padding:9px 10px;border:1px solid #d1d7e3;border-radius:9px;font-size:13px}
+.country-option{padding:10px 14px;cursor:pointer;font-size:14px}
+.country-option:hover{background:var(--accent-soft)}
+.rates-card{overflow:visible}
+.rates-card .country-block{margin-bottom:6px}
+</style>
+		
+<div class="rates-wrapper">
+<div class="rates-card">
+
+<h2>Rate Reports</h2>
+
+<!-- ================= FILTER BOX ================= -->
+<div class="country-block">
+
+  <div class="form-row">
+	<div class="form-group">
+	  <label>Client</label>
+
+	  <div class="client-search-wrapper">
+	    <button type="button" id="clientBtn" class="country-btn">
+	      Select Client
+	    </button>
+
+	    <div class="country-menu" id="clientMenu">
+	      <input
+	        type="text"
+	        id="clientSearch"
+	        class="country-search"
+	        placeholder="Search client..."
+	      />
+	      <div id="clientOptions"></div>
+	    </div>
+
+	    <!-- hidden original select (logic safe) -->
+	    <select id="clientDD" style="display:none">
+	      <option value="">Select Client</option>
+	    </select>
+	  </div>
+	</div>
+
+    <div class="form-group">
+      <label>Trunk</label>
+      <select id="trunkDD">
+        <option value="">Select Trunk</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>From Date</label>
+      <input type="date" id="fromDate">
+    </div>
+
+    <div class="form-group">
+      <label>To Date</label>
+      <input type="date" id="toDate">
+    </div>
+  </div>
+
+  <div class="form-row">
+	<div class="form-group">
+	  <label>AM Name</label>
+	  <select id="amName">
+	    <option value="">Select AM</option>
+	  </select>
+	</div>
+  </div>
+
+  <button class="add-country-btn" id="searchBtn">
+    🔍 Get Records
+  </button>
+
+</div>
+
+<!-- ================= RESULT TABLE ================= -->
+<table style="margin-top:25px">
+<thead>
+<tr>
+  <th>Client</th>
+  <th>Trunk</th>
+  <th>Date</th>
+  <th>AM Name</th>
+  <th>NOC Status</th>
+  <th>Routing Status</th>
+  <th>Client Send Status</th>
+  <th>Client Acceptance</th>
+  <th>Remarks</th>
+</tr>
+</thead>
+
+<tbody id="reportBody">
+<tr>
+  <td colspan="9" style="text-align:center;color:#777">
+    Search to load reports
+  </td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+let SEARCH_LOCK = false;
+
+/* ================= LOAD CLIENTS (SAME AS rates.html) ================= */
+fetch(`http://45.195.90.145:8089/client/getClient/${window.LOGGED_USER}/${window.USER_ROLE}`)
+.then(r => r.json())
+.then(res => {
+
+  const hiddenDD = $("clientDD");
+  const btn = $("clientBtn");
+  const menu = $("clientMenu");
+  const optionsBox = $("clientOptions");
+  const search = $("clientSearch");
+
+  hiddenDD.innerHTML = `<option value="">Select Client</option>`;
+  optionsBox.innerHTML = "";
+
+  (res.data || []).forEach(c => {
+
+    // hidden select
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.dataset.name = c.name;
+    o.textContent = c.name;
+    hiddenDD.appendChild(o);
+
+    // visible option
+    const div = document.createElement("div");
+    div.className = "country-option";
+    div.textContent = c.name;
+
+    div.onclick = () => {
+      hiddenDD.value = c.id;
+      btn.textContent = c.name;
+      menu.classList.remove("open");
+
+      // 🔥 trigger existing logic
+      hiddenDD.dispatchEvent(new Event("change"));
+    };
+
+    optionsBox.appendChild(div);
+  });
+
+  // open dropdown
+  btn.onclick = e => {
+    e.stopPropagation();
+    menu.classList.toggle("open");
+    search.focus();
+  };
+
+  // search filter
+  search.onkeyup = () => {
+    const val = search.value.toLowerCase();
+    [...optionsBox.children].forEach(opt => {
+      opt.style.display = opt.textContent.toLowerCase().includes(val)
+        ? "block"
+        : "none";
+    });
+  };
+});
+
+
+/* ================= CLIENT → TRUNK (SAME AS rates.html) ================= */
+
+/* ================= CLIENT → TRUNK ================= */
+clientDD.onchange = loadTrunks;
+
+/* ================= DIRECT TRUNK CLICK (NO CLIENT) ================= */
+trunkDD.onclick = () => {
+  if (!clientDD.value && trunkDD.options.length <= 1) {
+    loadAllTrunks();
+  }
+};
+
+function loadTrunks() {
+
+  trunkDD.innerHTML = `<option value="">Loading...</option>`;
+
+  // 👉 Client selected
+  if (clientDD.value) {
+
+    fetch(`http://45.195.90.145:8089/client/getClientTrunk/${clientDD.value}`)
+    .then(r => r.json())
+    .then(list => {
+      renderTrunks(Array.isArray(list) ? list : []);
+    });
+
+  } 
+  // 👉 No client selected → load ALL trunks
+  else {
+    loadAllTrunks();
+  }
+}
+
+function loadAllTrunks() {
+
+  trunkDD.innerHTML = `<option value="">Loading...</option>`;
+
+  fetch(`http://45.195.90.145:8089/client/getTrunk`)
+  .then(r => r.json())
+  .then(list => {
+    renderTrunks(Array.isArray(list) ? list : []);
+  });
+}
+
+function renderTrunks(trunks) {
+
+  trunkDD.innerHTML = `<option value="">Select Trunk</option>`;
+
+  const frag = document.createDocumentFragment();
+
+  trunks.forEach(t => {
+    const o = document.createElement("option");
+    o.value = t.id;
+    o.textContent = t.name || t.trunkName;
+    frag.appendChild(o);
+  });
+
+  trunkDD.appendChild(frag);
+}
+/* ================= SEARCH ================= */
+/* ================= SEARCH ================= */
+
+searchBtn.onclick = async () => {
+
+  if (SEARCH_LOCK) return;
+  SEARCH_LOCK = true;
+
+  const payload = {};
+
+  if (clientDD.value) {
+    payload.clientName =
+      clientDD.options[clientDD.selectedIndex].text.trim();
+  }
+
+  if (trunkDD.value) {
+    payload.trunkName =
+      trunkDD.options[trunkDD.selectedIndex].text.trim();
+  }
+
+  if (fromDate.value) payload.fromDate = fromDate.value;
+  if (toDate.value) payload.toDate = toDate.value;
+  if (amName.value.trim()) payload.amName = amName.value.trim();
+
+  reportBody.innerHTML = `
+    <tr>
+      <td colspan="9" style="text-align:center">
+        🔄 Searching...
+      </td>
+    </tr>
+  `;
+
+  try {
+
+    // ✅ ONLY ONE API CALL (POST)
+    const res = await fetch(
+      "http://45.195.90.145:8089/report/getReportData",
+      {
+        method  : "POST",
+        headers : { "Content-Type": "application/json" },
+        body    : JSON.stringify(payload)
+      }
+    );
+
+    if (!res.ok) throw new Error();
+
+    const data = await res.json();
+
+    // ✅ render FILTERED result
+    renderReport(Array.isArray(data) ? data : []);
+
+  } catch (e) {
+
+    reportBody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;color:red">
+          ❌ Failed to load report
+        </td>
+      </tr>
+    `;
+  }
+
+  SEARCH_LOCK = false;
+};
+
+async function loadTodayReport() {
+
+  reportBody.innerHTML = `
+    <tr>
+      <td colspan="9" style="text-align:center">
+        🔄 Loading today's report...
+      </td>
+    </tr>
+  `;
+
+  try {
+    const res = await fetch(
+      "http://45.195.90.145:8089/report/getTodayReport"
+    );
+
+    if (!res.ok) throw new Error();
+
+    const data = await res.json();
+    renderReport(Array.isArray(data) ? data : []);
+
+  } catch (e) {
+    reportBody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;color:red">
+          ❌ Failed to load today report
+        </td>
+      </tr>
+    `;
+  }
+}
+
+
+/* ================= LOAD AM LIST ================= */
+/* ================= LOAD AM LIST (FIXED) ================= */
+fetch(`http://45.195.90.145:8089/user/getAmList?username=${window.LOGGED_USER}`)
+.then(r => r.json())
+.then(list => {
+
+  const amDD = document.getElementById("amName");
+  amDD.innerHTML = `<option value="">Select AM</option>`;
+
+  const frag = document.createDocumentFragment();
+
+  (Array.isArray(list) ? list : []).forEach(am => {
+    const o = document.createElement("option");
+
+    // ✅ CORRECT FIELDS
+    o.value = am.amName;        // payload ke liye
+    o.textContent = am.amName; // UI ke liye
+
+    frag.appendChild(o);
+  });
+
+  amDD.appendChild(frag);
+})
+.catch(err => {
+  console.error("AM list error", err);
+  document.getElementById("amName").innerHTML =
+    `<option value="">Failed to load AM</option>`;
+});
+
+
+/* ================= RENDER RESULT ================= */
+function renderReport(rows){
+
+  reportBody.innerHTML = "";
+
+  if (!rows.length) {
+    reportBody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center;color:#777">
+          No records found
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.clientName || "-"}</td>
+      <td>${r.trunkName || "-"}</td>
+      <td>${r.date || "-"}</td>
+      <td>${r.amName || "-"}</td>
+      <td>${r.nocStatus || "-"}</td>
+      <td>${r.routingStatus || "-"}</td>
+      <td>${r.clientSendStatus || "-"}</td>
+      <td>${r.clientAcceptanceStatus || "-"}</td>
+      <td>${r.remark || "-"}</td>
+    `;
+    frag.appendChild(tr);
+  });
+
+  reportBody.appendChild(frag);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadTodayReport();
+});
+
+</script>
+
+</div>
+</html>

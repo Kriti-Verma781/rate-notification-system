@@ -1,0 +1,989 @@
+<div th:fragment="content">
+	
+<style>
+/* ===== RATES PAGE – premium style (rates.html ka purana <style> poora isse replace karo) ===== */
+
+/* cards & blocks */
+.rates-wrapper,.rates-card{overflow:visible}
+.rates-card{position:relative}
+.country-block{position:relative;overflow:visible;margin-top:20px;padding:20px;border:1px solid var(--line);border-radius:14px;background:#fafbfe;contain:layout paint}
+.delete-country{position:absolute;top:12px;right:12px;width:30px;height:30px;display:grid;place-items:center;border-radius:8px;cursor:pointer;font-size:15px;background:#fef2f2;transition:.15s}
+.delete-country:hover{background:#fee2e2}
+
+/* buttons */
+.btn.primary{background:linear-gradient(135deg,var(--navy2),var(--accent));color:#fff;box-shadow:0 6px 16px rgba(79,70,229,.28)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(79,70,229,.38)}
+.btn.primary:disabled{opacity:.7;cursor:not-allowed;transform:none}
+.btn.secondary{background:#fff;color:var(--navy2);border:1px solid #d5dbe7}
+.btn.secondary:hover{background:#f1f4fa}
+.add-country-btn{margin:0;background:var(--navy2);color:#fff;padding:11px 18px;border-radius:11px;border:none;cursor:pointer;font-weight:700;font-size:14px;transition:.15s}
+.add-country-btn:hover{background:var(--accent)}
+.action-bar{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap}
+
+/* dropdown buttons */
+.dest-btn,.code-btn,.country-btn{width:100%;padding:12px 14px;border-radius:11px;border:1px solid #d1d7e3;background:#f8fafc;cursor:pointer;text-align:left;font-size:14px;font-weight:600;color:var(--ink);transition:.15s}
+.dest-btn:hover,.code-btn:hover,.country-btn:hover{border-color:var(--accent);background:#fff}
+.destination-dropdown,.country-dropdown,.client-search-wrapper{position:relative}
+.dest-menu,.country-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;width:100%;max-height:240px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;z-index:200;box-shadow:0 18px 40px rgba(15,23,42,.18)}
+.destination-dropdown.open .dest-menu,.country-dropdown.open .country-menu{display:block}
+.code-options label,.dest-options label,.dest-menu label{display:flex;align-items:center;gap:8px;margin:0;padding:7px 8px;font-size:13.5px;font-weight:500;border-radius:8px;cursor:pointer}
+.code-options label:hover,.dest-options label:hover,.dest-menu label:hover{background:#f1f4fa}
+.dest-menu .select-all{font-weight:700;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;margin-bottom:4px}
+.country-search{width:100%;padding:9px 10px;margin-bottom:6px;border-radius:9px;border:1px solid #d1d7e3;font-size:13px}
+.country-option,.client-item{padding:9px 10px;cursor:pointer;font-size:14px;border-radius:8px}
+.country-option:hover,.client-item:hover{background:var(--accent-soft)}
+
+/* code box: fixed height, inline scroll */
+.code-dropdown{width:100%}
+.code-menu{position:relative;top:auto;margin-top:6px;height:220px;max-height:none;box-shadow:none}
+.code-menu::-webkit-scrollbar,.dest-menu::-webkit-scrollbar{width:6px}
+.code-menu::-webkit-scrollbar-thumb,.dest-menu::-webkit-scrollbar-thumb{background:#c4cbdb;border-radius:6px}
+
+/* client search */
+#clientSearch{width:100%;padding:12px 14px;border-radius:11px;border:1px solid #d1d7e3;background:#f8fafc;font-size:14px}
+#clientSearch:focus{background:#fff}
+.client-list{position:absolute;top:calc(100% + 6px);width:100%;max-height:220px;overflow-y:auto;display:none;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;z-index:999;box-shadow:0 18px 40px rgba(15,23,42,.18)}
+
+/* routing */
+.routing-block{background:#fff;padding:16px 50px 16px 16px;margin-top:14px}
+.routing-row{display:flex;gap:10px;flex-wrap:wrap}
+.routing-row input{flex:1;min-width:140px;padding:11px 12px;border-radius:10px;border:1px solid #d1d7e3;background:#f8fafc;font-size:14px}
+
+/* modals */
+.email-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(10,15,36,.6);backdrop-filter:blur(4px)}
+.email-modal{position:relative;width:92%;max-width:920px;height:85vh;margin:5vh auto;display:flex;flex-direction:column;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.email-header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--navy2))}
+.email-header h3{margin:0;font-size:16px;font-weight:800}
+.email-close{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;cursor:pointer;opacity:.85;transition:.15s}
+.email-close:hover{opacity:1;background:rgba(255,255,255,.12)}
+.email-meta{padding:14px 22px;background:#f8fafc;border-bottom:1px solid var(--line);font-size:14px}
+.email-meta div{margin:5px 0}
+.email-body{flex:1;padding:22px;overflow:auto;font-size:14.5px;line-height:1.65}
+.email-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--line);background:#fafbfe}
+</style>
+
+<div class="rates-wrapper">
+<div class="rates-card">
+
+<h2>Add Rate</h2>
+
+<!-- ===== SAVE RATE LOADER ===== -->
+<div id="saveLoader" style="
+    display:none;
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,.75);
+    backdrop-filter:blur(2px);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    font-weight:600;
+">
+    ⏳ Saving Rate...
+</div>
+
+<div class="form-row">
+    <div class="form-group">
+        <label>Client</label>
+		<div class="client-search-wrapper">
+		    <input
+		        type="text"
+		        id="clientSearch"
+		        placeholder="Search client..."
+		        onclick="toggleClientList()"
+		        onkeyup="filterClients()"
+		    />
+
+		    <div id="clientList" class="client-list"></div>
+
+		    <!-- actual hidden select (backend ke liye) -->
+		    <select id="clientDropdown" style="display:none"></select>
+		</div>
+    </div>
+
+    <div class="form-group">
+        <label>Trunk</label>
+        <select id="trunkDropdown">
+            <option value="">Select Trunk</option>
+        </select>
+    </div>
+</div>
+
+<div id="countrySection"></div>
+
+<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+
+    <button id="addRoutingBtn" class="add-country-btn">
+        ➕ Add Another Routing
+    </button>
+
+    <button id="addCountryBtn" class="add-country-btn" style="display:none">
+        ➕ Add Destination
+    </button>
+
+</div>
+<!-- ================= ROUTING ================= -->
+
+
+
+<!-- ACTION BUTTONS -->
+<div class="action-bar">
+    <button id="saveBtn" class="btn primary">✅ Add / Preview Rate</button>
+   <button id="sendMailBtn" class="btn secondary" style="display:none">📧 Send Email to client</button> 
+</div>
+
+</div>
+</div>
+
+<!-- COUNTRY TEMPLATE -->
+<template id="countryTpl">
+    <div class="country-block">
+		
+		<span class="delete-country" title="Remove Country">🗑</span>
+
+        <div class="form-row">
+			<div class="form-group">
+			    <label>Country</label>
+			    
+				<div class="country-dropdown">
+				  <button type="button" class="country-btn">Select Country</button>
+
+				  <div class="country-menu">
+				    <input type="text" class="country-search" placeholder="Search country..." />
+				    <div class="country-options"></div>
+				  </div>
+
+				  <!-- hidden select (backend + existing logic safe) -->
+				  <select class="country" style="display:none"></select>
+				</div>
+			</div>
+
+            <div class="form-group">
+                <label>Destination</label>
+                <div class="destination-dropdown">
+                    <button type="button" class="dest-btn">Select Destination</button>
+
+                    <div class="dest-menu">
+                        <label class="select-all">
+                            <input type="checkbox" class="dest-select-all">
+                            Select All
+                        </label>
+                        <div class="dest-options"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+			<div class="form-group">
+			    <label>Code</label>
+
+			    <div class="destination-dropdown code-dropdown">
+			        <button type="button" class="code-btn">Select Codes</button>
+
+			        <div class="dest-menu code-menu">
+			            <label class="select-all">
+			                <input type="checkbox" class="code-select-all">
+			                Select All
+			            </label>
+			            <div class="code-options"></div>
+			        </div>
+			    </div>
+			</div>
+
+            <div class="form-group">
+                <label>Rate</label>
+                <input class="rate" />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Billing Cycle</label>
+				<input 
+				  type="text"
+				  class="billing"
+				  placeholder="Billing Cycle"
+				/>
+            </div>
+
+            <div class="form-group">
+                <label>Effective Date</label>
+                <input type="date" class="date" />
+            </div>
+		
+        </div>
+		<div class="form-group">
+		    <label>NOC Remark</label>
+		    <input class="noc-remark" placeholder="Enter NOC Remark"/>
+		</div>
+		<div class="routing-container"></div>
+    </div>
+</template>
+
+<!-- ROUTING TEMPLATE -->
+<template id="routingTpl">
+    <div class="country-block routing-block">
+
+        <span class="delete-country" title="Remove Routing">🗑</span>
+
+        <div class="routing-row">
+            <input class="routing-country" placeholder="Country">
+            <input class="routing-vendor" placeholder="Vendor Name">
+            <input class="routing-trunk" placeholder="Trunk">
+            <input class="routing-cost" type="number" step="0.0001" placeholder="Cost">
+			<input class="routing-remark" placeholder="Remark">
+        </div>
+
+    </div>
+</template>
+
+
+<!-- ===== EMAIL MODAL ===== -->
+<div id="emailModal" class="email-overlay" style="display:none">
+  <div class="email-modal">
+
+	<!-- ===== MAIL SENDING LOADER ===== -->
+	<div id="mailLoader" style="
+	    display:none;
+	    position:absolute;
+	    inset:0;
+	    background:rgba(255,255,255,.75);
+	    backdrop-filter:blur(2px);
+	    z-index:99999;
+	    align-items:center;
+	    justify-content:center;
+	    font-size:16px;
+	    font-weight:600;
+	">
+	    ⏳ Sending Mail...
+	</div>
+
+    <!-- HEADER -->
+    <div class="email-header">
+        <h3>📧 Email Preview</h3>
+        <span class="email-close" onclick="closeEmailModal()">✕</span>
+    </div>
+
+    <!-- META -->
+    <div class="email-meta">
+        <div><b>From:</b> <span id="emFrom">-</span></div>
+        <div><b>To:</b> <span id="emTo">-</span></div>
+        <div><b>Subject:</b> <span id="emSubject">-</span></div>
+    </div>
+
+    <!-- BODY -->
+    <div id="emailPreview" class="email-body">
+        Loading...
+    </div>
+
+    <!-- FOOTER -->
+    <div class="email-footer">
+		<button id="sendMailConfirmBtn" class="btn primary" onclick="sendEmail()">
+		    🚀 Send Email
+		</button>
+        <button class="btn secondary" onclick="closeEmailModal()">Cancel</button>
+    </div>
+
+  </div>
+</div>
+
+
+<div id="ratePreviewModal" class="email-overlay" style="display:none">
+  <div class="email-modal">
+
+    <div class="email-header">
+      <h3>📄 Rate Preview</h3>
+      <span class="email-close" onclick="closeRatePreview()">✕</span>
+    </div>
+
+    <div class="email-body">
+      <table style="width:100%; border-collapse:collapse" border="1">
+        <thead>
+          <tr>
+            <th>Destination</th>
+            <th>Code</th>
+            <th>Rate</th>
+            <th>Billing</th>
+			<th>Status</th>   <!-- ✅ ADD THIS -->
+            <th>Effective Date</th>
+          </tr>
+        </thead>
+        <tbody id="ratePreviewTable"></tbody>
+      </table>
+    </div>
+
+    <div class="email-footer">
+      <button class="btn secondary" onclick="closeRatePreview()">Cancel</button>
+      <button class="btn primary" onclick="openEmailFromPreview()">
+        📧 Send Mail to Client
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+	/* ================= GLOBAL ================= */
+	let _previewToEmails = [];
+	let masterDest = [];
+	//let billingCycles = [];
+
+	const $ = id => document.getElementById(id);
+
+	/* ================= BILLING CYCLE ================= 
+	fetch("http://45.195.90.145:8089/billingCycle/list")
+	.then(r=>r.json())
+	.then(d=> billingCycles = Array.isArray(d)?d:[]);*/
+
+	/* ================= MASTER DEST ================= */
+	fetch("http://45.195.90.145:8089/masterDest/getDest")
+	.then(r=>r.json())
+	.then(d=> masterDest = d.data || []);
+
+	
+	function toggleClientList(){
+	    $("clientList").style.display = "block";
+	}
+
+	function filterClients(){
+	    const val = $("clientSearch").value.toLowerCase();
+	    document.querySelectorAll(".client-item").forEach(i=>{
+	        i.style.display = i.textContent.toLowerCase().includes(val)
+	            ? "block" : "none";
+	    });
+	}
+
+	// outside click close
+	document.addEventListener("click",e=>{
+	    if(!e.target.closest(".client-search-wrapper")){
+	        $("clientList").style.display="none";
+	    }
+	});
+
+	/* ================= CLIENTS ================= */
+	fetch(`http://45.195.90.145:8089/client/getClient/${window.LOGGED_USER}/${window.USER_ROLE}`)
+	.then(r=>r.json())
+	.then(res=>{
+	  const hiddenSelect = $("clientDropdown");
+	  const list = $("clientList");
+
+	  hiddenSelect.innerHTML = `<option value="">Select Client</option>`;
+	  list.innerHTML = "";
+
+	  (res.data||[]).forEach(c=>{
+	    // hidden select (for existing logic)
+	    const o=document.createElement("option");
+	    o.value=c.id;
+	    o.dataset.name=c.name;
+	    o.textContent=c.name;
+	    hiddenSelect.appendChild(o);
+
+	    // visible list
+	    const div=document.createElement("div");
+	    div.className="client-item";
+	    div.textContent=c.name;
+	    div.onclick=()=>{
+	        $("clientSearch").value = c.name;
+	        hiddenSelect.value = c.id;
+	        list.style.display="none";
+
+	        // 🔥 trigger existing onchange
+	        hiddenSelect.dispatchEvent(new Event("change"));
+	    };
+	    list.appendChild(div);
+	  });
+	});
+
+	/* ================= CLIENT → TRUNK ================= */
+	clientDropdown.onchange = ()=>{
+	  trunkDropdown.innerHTML='<option value="">Select Trunk</option>';
+	  addCountryBtn.style.display="none";
+	  countrySection.innerHTML="";
+	  if(!clientDropdown.value) return;
+
+	  fetch(`http://45.195.90.145:8089/client/getClientTrunk/${clientDropdown.value}`)
+	  .then(r=>r.json())
+	  .then(list=>{
+	    const frag=document.createDocumentFragment();
+	    (Array.isArray(list)?list:[]).forEach(t=>{
+	      const o=document.createElement("option");
+	      o.value=t.id;
+	      o.dataset.name=t.name;
+	      o.textContent=t.name;
+	      frag.appendChild(o);
+	    });
+	    trunkDropdown.appendChild(frag);
+	  });
+	};
+
+	trunkDropdown.onchange=()=>{
+	  if(clientDropdown.value && trunkDropdown.value)
+	    addCountryBtn.style.display="inline-block";
+	};
+
+	/* ================= OUTSIDE CLICK (ONCE) ================= */
+	if(!window._ddClose){
+	  document.addEventListener("click",e=>{
+	    document.querySelectorAll(".destination-dropdown")
+	    .forEach(d=>{ if(!d.contains(e.target)) d.classList.remove("open");});
+	  });
+	  window._ddClose=true;
+	}
+
+	/* ================= ADD COUNTRY ================= */
+	addCountryBtn.onclick=()=>{
+	const tpl=countryTpl.content.cloneNode(true);
+	const block=tpl.querySelector(".country-block");
+
+	/* cache */
+	const cDD=block.querySelector(".country");
+	const billingDD=block.querySelector(".billing");
+	const destBtn=block.querySelector(".dest-btn");
+	const destOptions=block.querySelector(".dest-options");
+	const destAll=block.querySelector(".dest-select-all");
+	const destDD=block.querySelector(".destination-dropdown");
+	const codeBtn=block.querySelector(".code-btn");
+	const codeOptions=block.querySelector(".code-options");
+	const codeAll=block.querySelector(".code-select-all");
+	const codeDD=block.querySelector(".code-dropdown");
+
+	block._allCodes=[];
+	block._selectedCodes=[];
+
+	/* billing – will be filled from destination
+	billingDD.innerHTML = `
+	  <option value="">Select Billing Cycle</option>
+	`;  */
+
+	/* date */
+	const d=new Date();
+	block.querySelector(".date").value=
+	`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+	/* delete */
+	block.querySelector(".delete-country").onclick=()=>block.remove();
+
+	const countryBtn = block.querySelector(".country-btn");
+	const countryMenu = block.querySelector(".country-menu");
+	const countryOptions = block.querySelector(".country-options");
+	const countrySearch = block.querySelector(".country-search");
+
+	/* fill country */
+	cDD.innerHTML = `<option value="">Select Country</option>`;
+	countryOptions.innerHTML = "";
+
+	masterDest.forEach(c => {
+	  // hidden select
+	  const o = document.createElement("option");
+	  o.value = c.country;
+	  o.textContent = c.country;
+	  cDD.appendChild(o);
+
+	  // visible option
+	  const div = document.createElement("div");
+	  div.className = "country-option";
+	  div.textContent = c.country;
+
+	  div.onclick = () => {
+	    cDD.value = c.country;
+	    countryBtn.textContent = c.country;
+	    countryMenu.parentElement.classList.remove("open");
+
+	    // 🔥 trigger existing logic
+	    cDD.dispatchEvent(new Event("change"));
+	  };
+
+	  countryOptions.appendChild(div);
+	});
+
+	/* open dropdown */
+	countryBtn.onclick = e => {
+	  e.stopPropagation();
+	  countryMenu.parentElement.classList.toggle("open");
+	  countrySearch.focus();
+	};
+
+	/* search */
+	countrySearch.onkeyup = () => {
+	  const val = countrySearch.value.toLowerCase();
+	  [...countryOptions.children].forEach(opt => {
+	    opt.style.display = opt.textContent.toLowerCase().includes(val)
+	      ? "block"
+	      : "none";
+	  });
+	};
+
+
+	
+	/* toggles */
+	destBtn.onclick=e=>{e.stopPropagation();destDD.classList.toggle("open");};
+	codeBtn.onclick=e=>{e.stopPropagation();codeDD.classList.toggle("open");};
+	destDD.onclick=e=>e.stopPropagation();
+	codeDD.onclick=e=>e.stopPropagation();
+
+	/* country change */
+	cDD.onchange=()=>{
+	  destOptions.innerHTML="";
+	  codeOptions.innerHTML="";
+	  destAll.checked=false;
+	  codeAll.checked=false;
+	  destBtn.textContent="Select Destination";
+	  codeBtn.textContent="Select Codes";
+	  block._allCodes=[];
+	  block._selectedCodes=[];
+
+	  const obj=masterDest.find(x=>x.country===cDD.value);
+	  if(!obj) return;
+
+	  const frag=document.createDocumentFragment();
+	  obj.destinationTypes.forEach(dt=>{
+	    dt.destinations.forEach(d=>{
+			const l=document.createElement("label");
+			const i=document.createElement("input");
+			i.type="checkbox";
+			i.className="dest-chk";
+
+			i._codes = (d.codes || []).map(c => ({
+			  code: c.code,
+			  dest: d.destinationName
+			}));
+
+			// 🔥 BILLING CYCLE FROM FIRST CODE
+			i._billingCycle = String(
+			  (d.codes && d.codes[0] && d.codes[0].billingCycle) || ""
+			);
+
+
+
+			l.append(i," ",d.destinationName);
+			frag.appendChild(l);
+	    });
+	  });
+	  destOptions.appendChild(frag);
+	  destDD.classList.add("open");
+	};
+
+	/* dest select */
+	destAll.onchange=()=>{
+	  destOptions.querySelectorAll(".dest-chk").forEach(c=>c.checked=destAll.checked);
+	  prepareCodes();
+	};
+	destOptions.onchange=prepareCodes;
+
+	/* prepare codes */
+	function prepareCodes(){
+	  block._allCodes=[];
+	  block._selectedCodes=[];
+	  codeOptions.innerHTML="";
+	  codeAll.checked=false;
+
+	  destOptions.querySelectorAll(".dest-chk:checked")
+	  .forEach(d=> block._allCodes.push(...d._codes));
+
+	  const map = new Map();
+
+	  block._allCodes.forEach(c => {
+	    const key = `${c.code}_${c.dest}`;   // 🔥 UNIQUE KEY
+	    map.set(key, c);
+	  });
+
+	  block._allCodes = [...map.values()];
+
+	  destBtn.textContent=block._allCodes.length?
+	  `${destOptions.querySelectorAll(".dest-chk:checked").length} Destination Selected`
+	  :"Select Destination";
+	  
+	  // 🔥 AUTO BILLING FROM DESTINATION (EDITABLE)
+	  // 🔥 AUTO BILLING FILL (INPUT)
+	  // 🔥 AUTO BILLING IF ALL SELECTED DEST HAVE SAME BILLING
+	  const selected = [...destOptions.querySelectorAll(".dest-chk:checked")];
+
+	  if (selected.length > 0) {
+
+	    // collect all billing cycles
+	    const billingSet = new Set(
+	      selected
+	        .map(d => (d._billingCycle || "").trim())
+	        .filter(v => v.length)
+	    );
+
+	    // if all same → auto fill
+	    if (billingSet.size === 1) {
+	      billingDD.value = [...billingSet][0];
+	    } else {
+	      billingDD.value = ""; // mixed billing
+	    }
+
+	  } else {
+	    billingDD.value = "";
+	  }
+
+
+
+
+
+	  renderCodes();
+	}
+
+	/* chunk render */
+	function renderCodes(){
+	let i=0,chunk=80;
+	(function run(){
+	  const frag=document.createDocumentFragment();
+	  for(let j=0;j<chunk && i<block._allCodes.length;j++,i++){
+	    const o=block._allCodes[i];
+	    const l=document.createElement("label");
+	    l.innerHTML=`<input type="checkbox" class="code-chk" data-code="${o.code}" data-dest="${o.dest}">
+	    <b>${o.code}</b> <span style="font-size:12px;color:#666">(${o.dest})</span>`;
+	    frag.appendChild(l);
+	  }
+	  codeOptions.appendChild(frag);
+	  if(i<block._allCodes.length) requestAnimationFrame(run);
+	})();
+	}
+
+	/* code select */
+	codeAll.onchange=()=>{
+	  const ch=codeAll.checked;
+	  codeOptions.querySelectorAll(".code-chk").forEach(c=>c.checked=ch);
+	  block._selectedCodes=ch?block._allCodes.map(c=>({...c})):[];
+	  updateCodeText();
+	};
+	codeOptions.onchange=()=>{
+	  block._selectedCodes=[...codeOptions.querySelectorAll(".code-chk:checked")]
+	  .map(c=>({code:c.dataset.code,dest:c.dataset.dest}));
+	  codeAll.checked=block._selectedCodes.length===block._allCodes.length;
+	  updateCodeText();
+	};
+	function updateCodeText(){
+	  codeBtn.textContent=block._selectedCodes.length?
+	  `${block._selectedCodes.length} Codes Selected`:"Select Codes";
+	}
+
+	countrySection.appendChild(tpl);
+	};
+
+	/* ================= SAVE ================= */
+	/* ================= SAVE ================= */
+	/* ================= SAVE ================= */
+	saveBtn.onclick = () => {
+
+	  const loader = document.getElementById("saveLoader");
+	  const btn = saveBtn;
+
+	  loader.style.display = "flex";
+	  btn.disabled = true;
+	  btn.textContent = "Saving...";
+
+	  const rateDetails = [];
+	  let nocRemark = "";
+
+	  const clientName =
+	    clientDropdown.selectedOptions[0].dataset.name;
+
+	  
+	  document.querySelectorAll(".country-block").forEach(b => {
+
+	    if (!b._selectedCodes || !b._selectedCodes.length) return;
+
+	    const rawDate = b.querySelector(".date").value;
+	    let formattedDate = "";
+
+	    
+	      
+		  if (rawDate) {
+		    const d = new Date(rawDate);
+
+		    const day  = String(d.getDate()).padStart(2, "0");
+		    const year = String(d.getFullYear()).slice(-2);
+
+		    const monthsShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+		    const monthName = monthsShort[d.getMonth()];
+
+		    // ✅ SAME FORMAT FOR ALL CLIENTS
+		    formattedDate = `${day}-${monthName}-${year}`;
+		  }
+
+		  // ✅ NOW WORKS
+		     if (!nocRemark) {
+		       nocRemark = b.querySelector(".noc-remark").value;
+		     }
+	    rateDetails.push({
+	      rate: b.querySelector(".rate").value,
+	      billingCycle: b.querySelector(".billing").value,
+	      effectiveDate: formattedDate,
+		// remark: b.querySelector(".noc-remark").value,   // 🔥 ADD THIS
+	      codes: b._selectedCodes.map(c => ({
+	        code: c.code,
+	        dest: c.dest
+	      }))
+	    });
+	  });
+
+	  if (!rateDetails.length) {
+	    alert("❌ Please add at least one country with codes");
+	    loader.style.display = "none";
+	    btn.disabled = false;
+	    btn.textContent = "✅ Add / Update Rate";
+	    return;
+	  }
+
+	  const payload = {
+	    clientName,
+	    trunkName: trunkDropdown.selectedOptions[0].dataset.name,
+		remark: nocRemark,
+	    rateDetails
+	  };
+
+	  fetch("http://45.195.90.145:8089/rateSheet/addRate", {
+	    method: "POST",
+	    headers: { "Content-Type": "application/json" },
+	    body: JSON.stringify(payload)
+	  })
+	  .then(r => r.json())   // 🔥 JSON lo
+	  .then(res => {
+
+	    if(res.status !== "Success" || !Array.isArray(res.data)){
+	      alert("❌ Rate save failed");
+	      return;
+	    }
+
+	    // ✅ DIRECTLY CURRENT ADDED DATA SHOW
+	    showRatePreview(res.data);
+
+	  })
+	  .catch(() => {
+	    alert("❌ Error Saving Rates");
+	  })
+	  .finally(() => {
+	    loader.style.display = "none";
+	    btn.disabled = false;
+	    btn.textContent = "✅ Add / Preview Rate";
+	  });
+	};
+
+
+
+/* ===== EMAIL PREVIEW ===== */
+sendMailBtn.onclick = () => {
+
+    if (!clientDropdown.value || !trunkDropdown.value) {
+        alert("Select Client & Trunk first");
+        return;
+    }
+
+    const clientName = clientDropdown.selectedOptions[0].dataset.name;
+    const trunkName  = trunkDropdown.selectedOptions[0].dataset.name;
+
+    emailModal.style.display = "block";
+    emailPreview.innerHTML = "Loading...";
+
+    fetch("http://45.195.90.145:8089/mail/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientName, trunkName })
+    })
+    .then(r => r.json())
+	.then(res => {
+
+	    if (!res.data) {
+	        emailPreview.innerHTML = "❌ No preview data found";
+	        return;
+	    }
+
+	    const mail = res.data;
+
+	    document.getElementById("emFrom").textContent = mail.fromEmail;
+		_previewToEmails = [];
+
+		(mail.toEmails || []).forEach(e => {
+		  if (!e) return;
+
+		  e.split(",")
+		   .map(x => x.trim())
+		   .filter(x => x.length)
+		   .forEach(x => _previewToEmails.push(x));
+		});
+
+		document.getElementById("emTo").textContent =
+		  _previewToEmails.join(", ");
+	    document.getElementById("emSubject").textContent = mail.subject;
+
+	    emailPreview.innerHTML = mail.body;
+	})
+    .catch(() => {
+        emailPreview.innerHTML = "❌ Failed to load preview";
+    });
+};
+
+/* ================= ADD ROUTING ================= */
+addRoutingBtn.onclick = () => {
+
+    const blocks = document.querySelectorAll(".country-block:not(.routing-block)");
+
+    if (!blocks.length) {
+        alert("Add destination first");
+        return;
+    }
+
+    const lastBlock = blocks[blocks.length - 1];
+
+    const container = lastBlock.querySelector(".routing-container");
+
+    if (!container) {
+        alert("Routing container not found ❌");
+        return;
+    }
+
+    const tpl = routingTpl.content.cloneNode(true);
+    const routingBlock = tpl.querySelector(".routing-block");
+
+    routingBlock.querySelector(".delete-country").onclick = () => {
+        if(confirm("Remove this routing?")){
+            routingBlock.remove();
+        }
+    };
+
+    container.appendChild(tpl);
+};
+/* ===== SEND EMAIL ===== */
+function sendEmail(){
+
+  if(!_previewToEmails.length){
+    alert("❌ No recipient emails found");
+    return;
+  }
+
+  const sendBtn = document.getElementById("sendMailConfirmBtn");
+  const loader  = document.getElementById("mailLoader");
+
+  /* ===== SHOW LOADER ===== */
+  loader.style.display = "flex";
+  sendBtn.disabled = true;
+  sendBtn.textContent = "Sending...";
+
+  const routingRateList = [];
+
+  document.querySelectorAll(".routing-block").forEach(b => {
+
+      const country = b.querySelector(".routing-country").value;
+      const vendor  = b.querySelector(".routing-vendor").value;
+      const trunk   = b.querySelector(".routing-trunk").value;
+      const cost    = b.querySelector(".routing-cost").value;
+	  const remark = b.querySelector(".routing-remark").value;
+	          
+
+      if(!country || !vendor || !trunk || !cost) return;
+
+      routingRateList.push({
+          country,
+          vendor,
+          trunk,
+          vendorCost: cost,
+		  remark
+      });
+  });
+  // 🔥 GLOBAL NOC REMARK
+   let remark = "";
+
+   document.querySelectorAll(".country-block:not(.routing-block)").forEach(b => {
+     if (!remark) {
+       remark = b.querySelector(".noc-remark")?.value || "";
+     }
+   });
+  /*if(!routingRateList.length){
+      alert("❌ Add at least one routing");
+      loader.style.display = "none";
+      sendBtn.disabled = false;
+      sendBtn.textContent = "🚀 Send Email";
+      return;
+  }*/
+
+  const payload = {
+    clientName: clientDropdown.selectedOptions[0].dataset.name,
+    trunkName: trunkDropdown.selectedOptions[0].dataset.name,
+    routingRateList,
+    toEmails: _previewToEmails,
+	remark   // ✅ NOW SENT
+
+  };
+
+  fetch("http://45.195.90.145:8089/mail/sendrate",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    alert(res.message || "✅ Mail Sent");
+    closeEmailModal();
+	
+	window.location.href = "/?page=clients";
+
+  })
+  .catch(()=>{
+    alert("❌ Mail send failed");
+  })
+  .finally(()=>{
+    /* ===== HIDE LOADER ===== */
+    loader.style.display = "none";
+    sendBtn.disabled = false;
+    sendBtn.textContent = "🚀 Send Email";
+  });
+}
+
+
+
+function closeEmailModal() {
+    emailModal.style.display = "none";
+}
+
+function showRatePreview(list){
+
+  const tbody = document.getElementById("ratePreviewTable");
+  tbody.innerHTML = "";
+
+  if(!Array.isArray(list) || list.length === 0){
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center;padding:12px">
+          No rate data found
+        </td>
+      </tr>
+    `;
+    document.getElementById("ratePreviewModal").style.display = "flex";
+    return;
+  }
+
+  list.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.destination}</td>
+      <td>${r.code}</td>
+      <td>${r.rate}</td>
+      <td>${r.billingCycle}</td>
+      <td>${r.status}</td>
+      <td>${r.effectiveDate}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("ratePreviewModal").style.display = "flex";
+}
+
+
+function closeRatePreview(){
+  document.getElementById("ratePreviewModal").style.display = "none";
+}
+function openEmailFromPreview(){
+  closeRatePreview();
+  sendMailBtn.click(); // existing email preview logic
+}
+
+function vendorNameEl(){ return document.getElementById("vendorName").value; }
+
+</script>
+
+</div>

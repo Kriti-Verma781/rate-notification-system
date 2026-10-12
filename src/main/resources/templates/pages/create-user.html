@@ -1,0 +1,234 @@
+<div th:fragment="content">
+
+<style>
+.cu-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:22px;align-items:start}
+.cu-sec{padding:26px 30px;border-bottom:1px solid var(--line)}
+.cu-sec:last-of-type{border-bottom:none}
+.cu-sec-h{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.cu-num{width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:800;flex-shrink:0}
+.cu-sec-h h3{font-size:15px;font-weight:800}
+.cu-sec-h p{font-size:12.5px;color:var(--muted);margin-top:2px}
+.cu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 20px}
+.cu-field{display:flex;flex-direction:column}
+.cu-field.full{grid-column:1/-1}
+.cu-field label{font-size:12.5px;font-weight:700;color:#475569;margin-bottom:7px}
+.cu-field input,.cu-field select{width:100%;padding:12px 14px;border-radius:11px;border:1px solid #d1d7e3;background:#f8fafc;font-size:14px}
+.cu-field input:focus,.cu-field select:focus{background:#fff}
+.cu-input-ic{position:relative}
+.cu-input-ic > i{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:18px;color:#94a3b8;pointer-events:none}
+.cu-input-ic input{padding-left:40px}
+.cu-pass{position:relative}
+.cu-pass input{padding:12px 82px 12px 40px}
+.cu-pass > i{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:18px;color:#94a3b8}
+.cu-tools{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;gap:2px}
+.cu-tools button{width:34px;height:34px;border:none;background:transparent;border-radius:9px;cursor:pointer;color:var(--muted);font-size:18px;transition:.15s}
+.cu-tools button:hover{background:#eef1f6;color:var(--accent)}
+.cu-msg{display:none;margin:0 30px 6px;padding:12px 16px;border-radius:11px;font-size:14px;font-weight:600}
+.cu-msg.ok{display:block;background:#ecfdf3;border:1px solid #bbf7d0;color:#15803d}
+.cu-msg.err{display:block;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
+.cu-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:20px 30px;background:#fafbfe;border-top:1px solid var(--line)}
+.cu-foot small{color:var(--muted);font-size:12.5px}
+.cu-foot .grp{display:flex;gap:12px}
+.cu-side{display:flex;flex-direction:column;gap:18px}
+.cu-tip{padding:20px 22px}
+.cu-tip h4{font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.cu-tip h4 i{color:var(--accent);font-size:18px}
+.cu-tip ul{list-style:none}
+.cu-tip li{display:flex;gap:10px;font-size:13px;color:#475569;line-height:1.5;margin-bottom:10px}
+.cu-tip li:last-child{margin-bottom:0}
+.cu-tip li i{color:#16a34a;font-size:17px;flex-shrink:0;margin-top:1px}
+.cu-recent{list-style:none}
+.cu-recent li{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid #eff2f8}
+.cu-recent li:last-child{border-bottom:none}
+.cu-recent .av2{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:800;font-size:13px;flex-shrink:0}
+.cu-recent b{display:block;font-size:13px;font-weight:700}
+.cu-recent small{font-size:12px;color:var(--muted)}
+.cu-recent .tag{margin-left:auto;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f1f5f9;color:#475569}
+.cu-none{font-size:13px;color:var(--muted);text-align:center;padding:14px 0}
+@media(max-width:1000px){.cu-layout{grid-template-columns:1fr}}
+@media(max-width:700px){.cu-grid{grid-template-columns:1fr}.cu-sec{padding:22px 20px}}
+</style>
+
+  <div class="pg-head">
+    <div>
+      <h1>Create user</h1>
+      <p>Add a team member and choose the role they will use to sign in to the workspace.</p>
+    </div>
+  </div>
+
+  <div class="cu-layout">
+
+    <div class="panel">
+      <form id="createUserForm" method="post" th:action="@{/do-signup}" autocomplete="off">
+
+        <div class="cu-sec">
+          <div class="cu-sec-h">
+            <div class="cu-num">1</div>
+            <div><h3>Account details</h3><p>Who is this person and how will they sign in?</p></div>
+          </div>
+          <div class="cu-grid">
+            <div class="cu-field">
+              <label for="cuName">Full name</label>
+              <div class="cu-input-ic"><i class="ti ti-id"></i><input id="cuName" name="fullName" placeholder="e.g. Aditi Sharma" autocomplete="off" required></div>
+            </div>
+            <div class="cu-field">
+              <label for="cuUser">Username</label>
+              <div class="cu-input-ic"><i class="ti ti-at"></i><input id="cuUser" name="userName" type="text" placeholder="e.g. aditi.sharma@gmail.com" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cu-sec">
+          <div class="cu-sec-h">
+            <div class="cu-num">2</div>
+            <div><h3>Access</h3><p>Set a password and decide what this user can do.</p></div>
+          </div>
+          <div class="cu-grid">
+            <div class="cu-field">
+              <label for="cuPass">Password</label>
+              <div class="cu-pass">
+                <i class="ti ti-lock"></i>
+                <input id="cuPass" name="password" type="password" placeholder="Create a password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" required>
+                <div class="cu-tools">
+                  <button type="button" id="cuEye" title="Show or hide password"><i class="ti ti-eye"></i></button>
+                </div>
+              </div>
+            </div>
+            <div class="cu-field">
+              <label for="cuRole">Role</label>
+              <select id="cuRole" name="role" required>
+                <option value="">Loading roles...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="cuMsg" class="cu-msg"></div>
+
+        <div class="cu-foot">
+          <small></small>
+          <div class="grp">
+            <button type="reset" class="btn btn-back" id="cuReset">Clear</button>
+            <button type="submit" class="btn btn-primary" id="cuSubmit"><i class="ti ti-user-plus"></i> Create user</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="cu-side">
+      <div class="panel cu-tip">
+        <h4><i class="ti ti-shield-check"></i> Good to know</h4>
+        <ul>
+          <li><i class="ti ti-circle-check"></i>Pick the lowest role that lets the person do their job.</li>
+          <li><i class="ti ti-circle-check"></i>Use at least 8 characters with a mix of letters, numbers and symbols.</li>
+          <li><i class="ti ti-circle-check"></i>Share the password privately and ask the user to keep it safe.</li>
+        </ul>
+      </div>
+
+      <div class="panel cu-tip">
+        <h4><i class="ti ti-history"></i> Created in this session</h4>
+        <ul class="cu-recent" id="cuRecent"></ul>
+        <div class="cu-none" id="cuNone">No users created yet.</div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(function () {
+  var form = document.getElementById("createUserForm");
+  var sel  = document.getElementById("cuRole");
+  var msg  = document.getElementById("cuMsg");
+  var btn  = document.getElementById("cuSubmit");
+  var pass = document.getElementById("cuPass");
+
+  /* roles list */
+  fetch("http://45.195.90.145:8089/user/getRoles")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      sel.innerHTML = '<option value="">Select role</option>';
+      data.forEach(function (role) {
+        var v = (typeof role === "string") ? role : role.name;
+        if (v) {
+          var o = document.createElement("option");
+          o.value = v; o.textContent = v;
+          sel.appendChild(o);
+        }
+      });
+    })
+    .catch(function () {
+      sel.innerHTML = '<option value="">Failed to load roles</option>';
+    });
+
+  /* show / hide password */
+  document.getElementById("cuEye").onclick = function () {
+    pass.type = (pass.type === "password") ? "text" : "password";
+  };
+
+  document.getElementById("cuReset").addEventListener("click", function () {
+    msg.className = "cu-msg";
+  });
+
+  function show(text, type) {
+    msg.textContent = text;
+    msg.className = "cu-msg " + type;
+  }
+
+  function addRecent(name, user, role) {
+    document.getElementById("cuNone").style.display = "none";
+    var li = document.createElement("li");
+    var av = document.createElement("div"); av.className = "av2"; av.textContent = (name || user || "?").charAt(0).toUpperCase();
+    var box = document.createElement("div");
+    var b = document.createElement("b"); b.textContent = name;
+    var sm = document.createElement("small"); sm.textContent = "@" + user;
+    box.appendChild(b); box.appendChild(sm);
+    var tag = document.createElement("span"); tag.className = "tag"; tag.textContent = role;
+    li.appendChild(av); li.appendChild(box); li.appendChild(tag);
+    var list = document.getElementById("cuRecent");
+    list.insertBefore(li, list.firstChild);
+  }
+
+  /* submit without leaving the dashboard */
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    msg.className = "cu-msg";
+
+    var uname = document.getElementById("cuUser").value.trim();
+    if (/\s/.test(uname)) {
+      show("Username can't contain spaces.", "err");
+      return;
+    }
+    var fname = document.getElementById("cuName").value.trim();
+    var role  = sel.value;
+
+    btn.disabled = true;
+
+    fetch(form.action, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(new FormData(form)).toString()
+    })
+    .then(function (res) {
+      var url = res.url || "";
+      if (url.indexOf("error") > -1) {
+        show("This username already exists. Try a different one.", "err");
+      } else if (url.indexOf("login") > -1 && url.indexOf("signup") === -1) {
+        show("Your session has expired. Please sign in again.", "err");
+      } else if (res.ok) {
+        show("User created successfully.", "ok");
+        addRecent(fname, uname, role);
+        form.reset();
+      } else {
+        show("Could not create the user. Please try again.", "err");
+      }
+    })
+    .catch(function () {
+      show("Could not reach the server. Please try again.", "err");
+    })
+    .finally(function () { btn.disabled = false; });
+  });
+})();
+</script>
+
+</div>

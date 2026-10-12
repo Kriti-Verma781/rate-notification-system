@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="content">
+
+<style>
+/* ===== PROMOTION FORM – promotion-form.html ka purana <style> poora isse replace karo ===== */
+.container{max-width:1040px;margin:0 auto}
+.top-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.top-bar h3{font-size:22px;font-weight:800}
+.top-actions{display:flex;gap:10px;flex-wrap:wrap}
+.top-actions .btn{padding:10px 18px;border-radius:11px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:.15s}
+.top-actions .add-btn{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+.top-actions .add-btn:hover{background:#dfe3ff}
+.top-actions .send-btn{background:var(--ok);color:#fff}
+.top-actions .send-btn:hover{background:#15803d}
+.top-actions .back-btn{background:#fff;color:var(--navy2);border:1px solid #d5dbe7}
+.top-actions .back-btn:hover{background:#f1f4fa}
+
+.form-block{position:relative;background:#fff;padding:18px 52px 18px 20px;border-radius:16px;margin-bottom:14px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.delete-btn{position:absolute;top:12px;right:12px;width:32px;height:32px;display:grid;place-items:center;border:none;border-radius:9px;background:#fef2f2;color:#ef4444;cursor:pointer;font-size:14px;transition:.15s}
+.delete-btn:hover{background:#fee2e2}
+
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:13px;font-weight:700;color:#334155}
+.field input,.field textarea,.country-btn,.dest-header{width:100%;padding:11px 13px;border-radius:11px;border:1px solid #d1d7e3;background:#f8fafc;font-size:14px;font-weight:500;color:var(--ink);transition:.15s}
+.field input:focus,.field textarea:focus{background:#fff}
+.field textarea{resize:vertical;height:44px;min-height:44px}
+.country-btn,.dest-header{text-align:left;cursor:pointer;font-weight:600}
+.country-btn:hover,.dest-header:hover{border-color:var(--accent);background:#fff}
+
+.country-dropdown,.dest-panel{position:relative}
+.country-menu,.dest-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;width:100%;max-height:230px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;z-index:9999;box-shadow:0 18px 40px rgba(15,23,42,.18);box-sizing:border-box}
+.country-dropdown.open .country-menu,.dest-panel.open .dest-menu{display:block}
+.country-search{width:100%;padding:9px 10px;margin-bottom:6px;border-radius:9px;border:1px solid #d1d7e3;font-size:13px}
+.country-option{padding:9px 10px;cursor:pointer;font-size:14px;border-radius:8px}
+.country-option:hover{background:var(--accent-soft)}
+.dest-select-all-row{display:flex;align-items:center;gap:8px;padding:8px;font-size:13.5px;font-weight:700;border-bottom:1px solid var(--line);margin-bottom:4px}
+.dest-options label{display:flex;align-items:center;gap:8px;padding:7px 8px;font-size:13.5px;cursor:pointer;border-radius:8px;white-space:nowrap}
+.dest-options label:hover{background:#f1f4fa}
+.dest-menu input[type="checkbox"]{width:16px;height:16px;margin:0;cursor:pointer}
+.field .country-menu::-webkit-scrollbar,.dest-menu::-webkit-scrollbar{width:6px}
+.dest-menu::-webkit-scrollbar-thumb{background:#c4cbdb;border-radius:6px}
+
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+</style>
+
+<div class="container">
+
+    <div class="top-bar">
+        <h3>Promotion Details</h3>
+        <div class="top-actions">
+            <button class="btn add-btn" onclick="addForm()">➕ Add Another</button>
+			<button class="btn send-btn" onclick="sendPromotion()">📤 Send</button>
+            <button class="btn back-btn" onclick="history.back()">⬅ Back</button>
+        </div>
+    </div>
+
+    <div id="formContainer"></div>
+
+</div>
+
+<script>
+let masterDest = [];
+
+fetch("http://45.195.90.145:8089/masterDest/getDest")
+  .then(r => r.json())
+  .then(d => {
+      masterDest = d.data || [];
+      addForm();
+  });
+
+function addForm(){
+    const container = document.getElementById("formContainer");
+    const block = document.createElement("div");
+    block.className = "form-block";
+
+    block.innerHTML = `
+      <button class="delete-btn" onclick="deleteForm(this)">🗑</button>
+
+      <div class="grid">
+
+        <div class="field">
+          <label class="field-label">Country</label>
+          <div class="country-dropdown">
+            <button type="button" class="country-btn">Select Country</button>
+            <div class="country-menu">
+              <input class="country-search" placeholder="Search country..." />
+              <div class="country-options"></div>
+            </div>
+          </div>
+        </div>
+
+		<div class="field">
+		  <label class="field-label">Destination</label>
+
+		  <div class="dest-panel">
+		    <div class="dest-header">Select Destination</div>
+
+		    <div class="dest-menu">
+		      <label class="dest-select-all-row">
+		        <input type="checkbox" class="dest-select-all">
+		        <span>Select All</span>
+		      </label>
+
+		      <div class="dest-options"></div>
+		    </div>
+		  </div>
+		</div>
+
+
+
+        <div class="field">
+          <label class="field-label">Quality</label>
+          <input placeholder="Enter Quality">
+        </div>
+
+        <div class="field">
+          <label class="field-label">Offer</label>
+          <input placeholder="Enter Offer">
+        </div>
+
+        <div class="field">
+          <label class="field-label">Remarks</label>
+          <textarea placeholder="Enter remarks"></textarea>
+        </div>
+
+      </div>
+    `;
+
+    container.appendChild(block);
+    initPromotionRow(block);
+}
+
+function initPromotionRow(block) {
+
+  const countryBtn = block.querySelector(".country-btn");
+  const countryMenu = block.querySelector(".country-menu");
+  const countryOpt = block.querySelector(".country-options");
+  const countrySearch = block.querySelector(".country-search");
+
+  const destPanel = block.querySelector(".dest-panel");
+  const destHeader = block.querySelector(".dest-header");
+  const destMenu = block.querySelector(".dest-menu");
+  const destOpt = block.querySelector(".dest-options");
+  const destAll = block.querySelector(".dest-select-all");
+
+  /* COUNTRY DROPDOWN */
+  countryBtn.onclick = e => {
+    e.stopPropagation();
+    block.querySelector(".country-dropdown").classList.toggle("open");
+  };
+
+  countryMenu.onclick = e => e.stopPropagation();
+
+  countryOpt.innerHTML = "";
+  masterDest.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "country-option";
+    div.textContent = c.country;
+
+    div.onclick = () => {
+      countryBtn.textContent = c.country;
+      block.querySelector(".country-dropdown").classList.remove("open");
+
+      // RESET DESTINATION
+      destOpt.innerHTML = "";
+      destAll.checked = false;
+      destHeader.textContent = "Select Destination";
+      destPanel.classList.remove("open");
+
+      loadDestinations(c, destOpt);
+    };
+
+    countryOpt.appendChild(div);
+  });
+
+  countrySearch.onkeyup = () => {
+    const v = countrySearch.value.toLowerCase();
+    [...countryOpt.children].forEach(o=>{
+      o.style.display = o.textContent.toLowerCase().includes(v) ? "block" : "none";
+    });
+  };
+
+  /* DESTINATION DROPDOWN */
+  destHeader.onclick = e => {
+    e.stopPropagation();
+    if(destOpt.children.length){
+      destPanel.classList.toggle("open");
+    }
+  };
+
+  /* SELECT ALL */
+  destAll.onchange = () => {
+    destOpt.querySelectorAll("input").forEach(cb=>{
+      cb.checked = destAll.checked;
+    });
+    updateDestHeader();
+  };
+
+  /* INDIVIDUAL CHECK */
+  destOpt.onchange = () => {
+    const all = destOpt.querySelectorAll("input").length;
+    const checked = destOpt.querySelectorAll("input:checked").length;
+    destAll.checked = all === checked;
+    updateDestHeader();
+  };
+
+  function updateDestHeader(){
+    const count = destOpt.querySelectorAll("input:checked").length;
+    destHeader.textContent = count
+      ? `${count} Destination Selected`
+      : "Select Destination";
+  }
+}
+
+
+function loadDestinations(countryObj, destOpt){
+  destOpt.innerHTML = "";
+
+  countryObj.destinationTypes.forEach(dt=>{
+    dt.destinations.forEach(d=>{
+      const label = document.createElement("label");
+      label.style.display = "flex";
+      label.style.gap = "6px";
+      label.style.padding = "5px 8px";
+      label.innerHTML = `
+        <input type="checkbox">
+        <span>${d.destinationName}</span>
+      `;
+      destOpt.appendChild(label);
+    });
+  });
+}
+
+
+function deleteForm(btn){
+  btn.closest(".form-block").remove();
+}
+
+document.addEventListener("click", e => {
+  document.querySelectorAll(".country-dropdown").forEach(d => {
+    if (!d.contains(e.target)) d.classList.remove("open");
+  });
+
+  document.querySelectorAll(".dest-panel").forEach(d => {
+    if (!d.contains(e.target)) d.classList.remove("open");
+  });
+});
+
+
+
+function sendPromotion() {
+
+  const rateList = [];
+
+  document.querySelectorAll(".form-block").forEach(block => {
+
+    const quality = block.querySelector('input[placeholder="Enter Quality"]')?.value.trim();
+    const offer   = block.querySelector('input[placeholder="Enter Offer"]')?.value.trim();
+    const remark  = block.querySelector('textarea')?.value.trim();
+
+    const checkedDestinations =
+      block.querySelectorAll(".dest-options input:checked");
+
+    checkedDestinations.forEach(cb => {
+      const destinationName =
+        cb.nextElementSibling.textContent.trim();
+
+      rateList.push({
+        destination: destinationName,
+        quality: quality,
+        offer: offer,
+        remark: remark
+      });
+    });
+  });
+
+  if (!rateList.length) {
+    alert("Please select at least one destination");
+    return;
+  }
+
+  const payload = { rateList };
+
+  fetch("http://45.195.90.145:8089/mail/sendPromotionMail", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Failed to send");
+    return res.json();
+  })
+  .then(data => {
+    alert("Promotion mail sent successfully ✅");
+    console.log(data);
+  })
+  .catch(err => {
+    alert("Error while sending mail ❌");
+    console.error(err);
+  });
+}
+
+
+
+</script>
+
+</div>
+</body>
+</html>
